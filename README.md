@@ -1,4 +1,4 @@
-# Naija Creator Hub
+# Paylance
 
 Creator monetization platform built with Next.js 14, Tailwind CSS, Supabase, and Paystack.
 
@@ -6,7 +6,7 @@ This README is the living product and execution document. We will update it cont
 
 ## Product Positioning
 
-Naija Creator Hub is a creator business operating system for Africa.
+Paylance is a creator business operating system for Africa.
 
 The goal is to go beyond a simple storefront and help creators run revenue, audience, products, and payouts in one place.
 

@@ -1,4 +1,6 @@
-import { CircleDollarSign, Eye, Heart, Plus } from "lucide-react";
+"use client";
+
+import { CircleDollarSign, Eye, Heart, Plus, Wallet } from "lucide-react";
 import { TopFilters } from "@/components/dashboard/top-filters";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { PerformanceChart } from "@/components/dashboard/performance-chart";
@@ -48,7 +50,16 @@ export default function RevenuePage() {
     <section className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-xl font-bold text-text">Revenue</h1>
-        <TopFilters />
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => window.location.href = "/payouts"}
+            className="flex h-9 items-center justify-center gap-2 rounded-lg border border-border bg-muted/50 px-4 text-xs font-semibold text-text transition-colors hover:bg-muted"
+          >
+            <Wallet className="h-4 w-4" />
+            Withdraw
+          </button>
+          <TopFilters />
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">

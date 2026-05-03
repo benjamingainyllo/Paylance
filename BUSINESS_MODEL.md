@@ -43,7 +43,7 @@ Unlike social platforms, Paylance gives creators direct access to their "Audienc
 ## 4. Target Market
 *   **High-Growth Creators**: Influencers, educators, and artists with active audiences looking to professionalize their monetization.
 *   **Event Hosts**: Creators who primarily engage their audience through meetups, workshops, and virtual sessions.
-*   **The African Creator Economy**: Specifically optimized for high-fidelity experiences in emerging markets like the "Naija Creator Hub."
+*   **The African Creator Economy**: Specifically optimized for high-fidelity experiences in emerging markets like "Paylance."
 
 ---
 

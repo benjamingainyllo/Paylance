@@ -21,7 +21,9 @@ import {
   Calendar,
   ExternalLink,
   Layers3,
-  LogOut
+  LogOut,
+  Wallet,
+  UserCircle
 } from "lucide-react";
 
 const navGroups = [
@@ -31,6 +33,7 @@ const navGroups = [
       { label: "Overview", icon: LayoutGrid, href: "/overview" },
       { label: "Audience", icon: UsersRound, href: "/audience" },
       { label: "Revenue", icon: CreditCard, href: "/revenue" },
+      { label: "Payouts", icon: Wallet, href: "/payouts" },
       { label: "Events", icon: Calendar, href: "/events" },
     ]
   },
@@ -250,7 +253,7 @@ export function Sidebar() {
         </button>
 
         {/* User Identity Section - Moved to Bottom */}
-        <button
+        <div
           className={`flex w-full items-center rounded-xl p-1.5 transition-colors hover:bg-zinc-800/50 ${
             isCollapsed ? "justify-center" : "gap-3 text-left"
           }`}
@@ -278,7 +281,7 @@ export function Sidebar() {
             <span className="truncate text-sm font-semibold text-white">{userName}</span>
             <span className="truncate text-xs text-zinc-500">{userName.toLowerCase()}@example.com</span>
           </div>
-        </button>
+        </div>
       </div>
     </aside>
   );

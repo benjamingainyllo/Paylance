@@ -18,7 +18,8 @@ import {
   MapPin,
   Upload,
   Image as ImageIcon,
-  X
+  X,
+  Zap
 } from "lucide-react";
 
 const categories = [
@@ -94,18 +95,18 @@ export default function OnboardingPage() {
                   <UserCircle className="h-5 w-5 text-blue-500" />
                   Claim your handle
                 </h2>
-                <p className="text-sm text-zinc-500">This will be your unique URL on Kaazi.</p>
+                <p className="text-sm text-zinc-500">This will be your unique URL on Paylance.</p>
               </div>
               <div className="relative group">
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center text-zinc-500 transition-colors group-focus-within:text-blue-500">
-                  <span className="text-sm font-medium">kaazi.me/</span>
+                  <span className="text-sm font-medium">paylance.me/</span>
                 </div>
                 <input 
                   type="text" 
                   value={handle}
                   onChange={(e) => setHandle(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ''))}
                   placeholder="username"
-                  className="h-14 w-full rounded-2xl border border-zinc-800 bg-zinc-900/40 pl-[84px] pr-4 text-lg font-medium outline-none transition-all focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  className="h-14 w-full rounded-2xl border border-zinc-800 bg-zinc-900/40 pl-[110px] pr-4 text-lg font-medium outline-none transition-all focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                 />
               </div>
               <button 
@@ -273,18 +274,27 @@ export default function OnboardingPage() {
                       {photo ? <img src={photo} className="h-full w-full object-cover" /> : <UserCircle className="h-6 w-6 text-blue-500" />}
                     </div>
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-white">kaazi.me/{handle}</p>
+                      <p className="truncate text-sm font-semibold text-white">paylance.me/{handle}</p>
                       <p className="truncate text-xs text-zinc-500">{category.charAt(0).toUpperCase() + category.slice(1)} • {location || "Worldwide"}</p>
                     </div>
                   </div>
                 </div>
-                <button 
-                  onClick={enterDashboard}
-                  className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-white text-lg font-bold text-black transition-all hover:bg-zinc-200 active:scale-[0.98]"
-                >
-                  View My Profile
-                  <ArrowRight className="h-5 w-5" />
-                </button>
+                <div className="flex flex-col gap-3">
+                  <button 
+                    onClick={() => router.push("/overview")}
+                    className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 text-lg font-bold text-white transition-all hover:bg-blue-500 active:scale-[0.98] shadow-lg shadow-blue-600/20"
+                  >
+                    Go to Dashboard
+                    <Zap className="h-5 w-5 fill-current" />
+                  </button>
+                  <button 
+                    onClick={enterDashboard}
+                    className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl border border-zinc-800 bg-zinc-900/40 text-lg font-bold text-white transition-all hover:bg-zinc-800 active:scale-[0.98]"
+                  >
+                    View My Profile
+                    <ArrowRight className="h-5 w-5" />
+                  </button>
+                </div>
               </div>
             </div>
           )}
