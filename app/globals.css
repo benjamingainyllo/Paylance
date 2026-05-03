@@ -1,0 +1,35 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 0 0 0; /* Jet Black */
+  --surface: 12 12 14; /* Dark Gray Card */
+  --muted: 24 24 27; /* Gray-900 */
+  --border: 39 39 42; /* Gray-800 */
+  --text: 255 255 255; /* Pure White */
+  --subtle: 161 161 170; /* Gray-400 */
+  color-scheme: dark;
+}
+
+html[data-theme="light"] {
+  --background: 255 255 255; /* White */
+  --surface: 249 250 251; /* Gray-50 */
+  --muted: 243 244 246; /* Gray-100 */
+  --border: 229 231 235; /* Gray-200 */
+  --text: 17 24 39; /* Gray-900 */
+  --subtle: 107 114 128; /* Gray-500 */
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+  background: rgb(var(--background));
+  color: rgb(var(--text));
+  font-family: var(--font-bricolage-grotesque), -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
