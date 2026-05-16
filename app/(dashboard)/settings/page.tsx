@@ -84,6 +84,7 @@ export default function SettingsPage() {
           }
 
           const profileData = {
+            id: user.id,
             first_name: firstName || null,
             last_name: lastName || null,
             handle: handle ? handle.toLowerCase() : null,
@@ -93,27 +94,17 @@ export default function SettingsPage() {
             avatar_url: finalAvatarUrl,
           };
 
-          console.log("Updating profile in DB...", profileData);
-          const { error: updateError } = await supabase
+          console.log("Saving profile to DB...", profileData);
+          const { error: saveError } = await supabase
             .from("profiles")
-            .update(profileData)
-            .eq("id", user.id);
+            .upsert(profileData);
 
-          if (updateError) {
-            console.error("Update error:", updateError);
-            if (updateError.code === "23505") {
+          if (saveError) {
+            console.error("Save error:", saveError);
+            if (saveError.code === "23505") {
               throw new Error("That handle is already taken. Try another one.");
             }
-            
-            console.log("Update failed, trying insert...");
-            const { error: insertError } = await supabase
-              .from("profiles")
-              .insert({ id: user.id, ...profileData });
-              
-            if (insertError) {
-              console.error("Insert error:", insertError);
-              throw new Error("Failed to save profile: " + insertError.message);
-            }
+            throw new Error("Failed to save profile: " + saveError.message);
           }
 
           console.log("Refreshing profile context...");
