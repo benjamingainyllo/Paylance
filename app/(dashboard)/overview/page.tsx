@@ -7,55 +7,97 @@ import { PerformanceChart } from "@/components/dashboard/performance-chart";
 import { TopFilters } from "@/components/dashboard/top-filters";
 import { useCurrency } from "@/hooks/use-currency";
 import { useAuth } from "@/components/auth/auth-provider";
+import { createClient } from "@/lib/supabase/client";
 
 export default function OverviewPage() {
-  const { profile } = useAuth();
+  const { user, profile } = useAuth();
+  const supabase = createClient();
   const [mounted, setMounted] = useState(false);
   const { formatPrice } = useCurrency();
+
+  // Real metrics from database
+  const [totalRevenue, setTotalRevenue] = useState(0);
+  const [totalLeads, setTotalLeads] = useState(0);
+  const [totalOffers, setTotalOffers] = useState(0);
+  const [storeVisits] = useState(0); // Will wire later with view tracking
 
   const userName = profile?.first_name || "Creator";
   const userBio = profile?.bio || "Track your revenue, audience, and growth experiments.";
 
+  useEffect(() => {
+    setMounted(true);
+
+    if (!user) return;
+
+    const fetchMetrics = async () => {
+      // Fetch total revenue from successful transactions
+      const { data: transactions } = await supabase
+        .from("transactions")
+        .select("amount")
+        .eq("creator_id", user.id)
+        .eq("status", "success");
+
+      if (transactions) {
+        const revenue = transactions.reduce((sum, t) => sum + Number(t.amount), 0);
+        setTotalRevenue(revenue);
+      }
+
+      // Fetch audience count
+      const { count: audienceCount } = await supabase
+        .from("audience")
+        .select("*", { count: "exact", head: true })
+        .eq("creator_id", user.id);
+
+      setTotalLeads(audienceCount || 0);
+
+      // Fetch offers count
+      const { count: offersCount } = await supabase
+        .from("offers")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id);
+
+      setTotalOffers(offersCount || 0);
+    };
+
+    fetchMetrics();
+  }, [user]);
+
+  if (!mounted) return null;
+
   const metrics = [
     {
       title: "Total Revenue",
-      value: formatPrice(100),
-      change: "vs last 7 days +100%",
+      value: formatPrice(totalRevenue),
+      change: "all time",
       icon: CircleDollarSign,
       iconColor: "#22C55E",
       iconBgColor: "rgba(34, 197, 94, 0.1)"
     },
     {
       title: "Store visits",
-      value: "4",
-      change: "vs last 7 days +100%",
+      value: String(storeVisits),
+      change: "coming soon",
       icon: Eye,
       iconColor: "#F97316",
       iconBgColor: "rgba(249, 115, 22, 0.1)"
     },
     {
-      title: "Leads",
-      value: "1",
-      change: "vs last 7 days +100%",
+      title: "Audience",
+      value: String(totalLeads),
+      change: "total contacts",
       icon: UserRoundPlus,
       iconColor: "#8B5CF6",
       iconBgColor: "rgba(139, 92, 246, 0.1)"
     },
     {
       title: "Offers Created",
-      value: "2",
-      change: "vs last 7 days 0.0%",
+      value: String(totalOffers),
+      change: "total offers",
       icon: FolderPlus,
       iconColor: "#505081",
       iconBgColor: "rgba(80, 80, 129, 0.1)"
     }
   ];
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) return null;
 
   return (
     <section className="space-y-4">
@@ -81,9 +123,17 @@ export default function OverviewPage() {
         <section className="rounded-xl border border-border bg-surface p-4">
           <h3 className="text-sm font-semibold text-text">Revenue Snapshot</h3>
           <div className="mt-5 rounded-lg border border-border bg-muted p-4">
-            <p className="text-sm font-medium text-text">Best performing offer</p>
-            <p className="text-xs text-subtle">Brand Design Masterclass</p>
-            <p className="mt-3 text-right text-sm font-semibold text-[#22c55e]">{formatPrice(100)}</p>
+            {totalRevenue > 0 ? (
+              <>
+                <p className="text-sm font-medium text-text">Total earnings</p>
+                <p className="mt-3 text-right text-sm font-semibold text-[#22c55e]">{formatPrice(totalRevenue)}</p>
+              </>
+            ) : (
+              <>
+                <p className="text-sm font-medium text-text">No revenue yet</p>
+                <p className="text-xs text-subtle mt-1">Create and publish an offer to start earning</p>
+              </>
+            )}
           </div>
         </section>
       </div>
