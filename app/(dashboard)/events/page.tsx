@@ -379,48 +379,37 @@ export default function EventsPage() {
 
       {showCreateForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={() => setShowCreateForm(false)}>
-          <div className="w-full max-w-xl rounded-3xl border border-zinc-800 bg-[#0c0c0e] shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
-            {/* Gradient Header */}
-            <div className="relative bg-gradient-to-br from-blue-600/30 via-purple-600/20 to-transparent px-8 pt-8 pb-6">
+          <div className="flex w-full max-w-5xl h-[85vh] rounded-3xl border border-zinc-800 bg-[#0c0c0e] shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            
+            {/* Left Column: Cover Image & Theme */}
+            <div className="relative hidden w-[400px] flex-col border-r border-zinc-800 bg-zinc-900/30 p-8 md:flex">
               <button 
                 onClick={() => setShowCreateForm(false)}
-                className="absolute top-4 right-4 flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white/60 hover:bg-white/20 hover:text-white transition-colors"
+                className="absolute top-6 left-6 flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white/60 hover:bg-white/20 hover:text-white transition-colors"
               >
                 <Plus className="h-4 w-4 rotate-45" />
               </button>
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 backdrop-blur-sm mb-4">
-                <CalendarIcon className="h-6 w-6 text-white" />
-              </div>
-              <h2 className="text-xl font-bold text-white">Create New Event</h2>
-              <p className="mt-1 text-sm text-white/60">Set up your next meetup, workshop, or virtual session.</p>
-            </div>
-            
-            <form className="p-8 space-y-5 max-h-[60vh] overflow-y-auto" onSubmit={handleCreateEvent}>
-              {/* Cover Image Upload */}
-              <div className="space-y-1.5">
-                <label className="flex items-center gap-2 text-xs font-semibold text-zinc-400">
-                  <ImagePlus className="h-3 w-3" /> Cover Image
-                </label>
-                <div
+
+              <div className="mt-12 flex-1 space-y-6">
+                <div 
                   onDrop={handleImageDrop}
                   onDragOver={(e) => e.preventDefault()}
-                  className="relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-zinc-700 bg-zinc-900/30 transition-colors hover:border-blue-500/40 hover:bg-zinc-900/60 cursor-pointer overflow-hidden"
-                  style={{ minHeight: imagePreview ? '160px' : '120px' }}
                   onClick={() => fileInputRef.current?.click()}
+                  className="group relative aspect-square w-full cursor-pointer overflow-hidden rounded-2xl border-2 border-dashed border-zinc-700 bg-zinc-800/50 transition-all hover:border-blue-500/50"
                 >
                   {imagePreview ? (
                     <>
-                      <img src={imagePreview} alt="Preview" className="absolute inset-0 h-full w-full object-cover" />
-                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                        <p className="text-xs text-white font-medium">Click to change</p>
+                      <img src={imagePreview} alt="Preview" className="h-full w-full object-cover" />
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
+                        <p className="text-xs font-medium text-white">Change Image</p>
                       </div>
                     </>
                   ) : (
-                    <>
-                      <ImagePlus className="h-8 w-8 text-zinc-600 mb-2" />
-                      <p className="text-xs text-zinc-500">Drag & drop or <span className="text-blue-400">browse</span></p>
-                      <p className="text-[10px] text-zinc-600 mt-1">PNG, JPG up to 5MB</p>
-                    </>
+                    <div className="flex h-full flex-col items-center justify-center p-6 text-center text-zinc-500">
+                      <ImagePlus className="mb-3 h-8 w-8 text-zinc-600" />
+                      <p className="text-sm font-medium">Add Event Cover</p>
+                      <p className="mt-1 text-xs text-zinc-600">Drag & drop or click</p>
+                    </div>
                   )}
                   <input
                     ref={fileInputRef}
@@ -429,139 +418,177 @@ export default function EventsPage() {
                     onChange={handleImageUpload}
                     className="hidden"
                   />
+                  <button className="absolute bottom-4 right-4 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-md transition-transform hover:scale-110">
+                    <ImagePlus className="h-4 w-4" />
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-900/50 p-4">
+                  <div>
+                    <p className="text-[10px] uppercase text-zinc-500">Theme</p>
+                    <p className="text-sm font-semibold text-white">Minimal Dark</p>
+                  </div>
+                  <button className="rounded-lg bg-zinc-800 p-2 text-zinc-400 hover:text-white">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column: Event Details Form */}
+            <form className="flex flex-1 flex-col overflow-y-auto p-8 md:p-10" onSubmit={handleCreateEvent}>
+              <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-2 rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-medium text-zinc-400 border border-zinc-800">
+                  <CalendarIcon className="h-3.5 w-3.5" />
+                  Personal Calendar
+                </div>
+                <div className="flex items-center gap-2 rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-medium text-zinc-400 border border-zinc-800">
+                  <Globe className="h-3.5 w-3.5" />
+                  Public
                 </div>
               </div>
 
-              {/* Event Name */}
-              <div className="space-y-1.5">
-                <label className="flex items-center gap-2 text-xs font-semibold text-zinc-400">
-                  <Zap className="h-3 w-3" /> Event Name
-                </label>
-                <input 
-                  type="text" 
-                  required
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  placeholder="e.g. Creator Workshop Lagos" 
-                  className="h-12 w-full rounded-xl border border-zinc-800 bg-zinc-900/50 px-4 text-sm text-white placeholder:text-zinc-600 focus:border-blue-500/50 focus:outline-none focus:ring-1 focus:ring-blue-500/20 transition-all"
-                />
-              </div>
+              {/* Huge Event Name Input */}
+              <input 
+                type="text" 
+                required
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                placeholder="Event Name" 
+                className="w-full bg-transparent text-4xl sm:text-5xl font-serif text-white placeholder:text-zinc-700 focus:outline-none mb-10"
+              />
 
-              {/* Free / Paid Toggle + Price + Date + Time */}
-              <div>
-                <button
-                  type="button"
-                  onClick={() => { setIsFree(!isFree); if (!isFree) setFormData({ ...formData, price: "0" }); }}
-                  className={`mb-4 flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-semibold transition-colors ${
-                    isFree
-                      ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                      : 'bg-zinc-800/50 text-zinc-400 border border-zinc-800'
-                  }`}
-                >
-                  {isFree ? <ToggleRight className="h-4 w-4" /> : <ToggleLeft className="h-4 w-4" />}
-                  {isFree ? 'Free Event' : 'Paid Event'}
-                </button>
-
-                <div className="grid gap-4 md:grid-cols-3">
-                  <div className="space-y-1.5">
-                    <label className="flex items-center gap-2 text-xs font-semibold text-zinc-400">
-                      <Ticket className="h-3 w-3" /> Price (₦)
-                    </label>
-                    <input 
-                      type="number" 
-                      required
-                      disabled={isFree}
-                      value={isFree ? '0' : formData.price}
-                      onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                      placeholder="0"
-                      className={`h-12 w-full rounded-xl border border-zinc-800 bg-zinc-900/50 px-4 text-sm text-white placeholder:text-zinc-600 focus:border-blue-500/50 focus:outline-none focus:ring-1 focus:ring-blue-500/20 transition-all ${isFree ? 'opacity-40 cursor-not-allowed' : ''}`}
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="flex items-center gap-2 text-xs font-semibold text-zinc-400">
-                      <CalendarIcon className="h-3 w-3" /> Date
-                    </label>
+              {/* Start & End Date/Time Block */}
+              <div className="flex flex-col sm:flex-row gap-4 mb-6 rounded-2xl border border-zinc-800 bg-zinc-900/30 p-4">
+                <div className="flex-1 space-y-4 relative">
+                  <div className="flex items-center gap-4">
+                    <div className="w-16 text-xs font-medium text-zinc-500">Start</div>
                     <input 
                       type="date" 
                       required
                       value={formData.date}
                       onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                      className="h-12 w-full rounded-xl border border-zinc-800 bg-zinc-900/50 px-4 text-sm text-white focus:border-blue-500/50 focus:outline-none focus:ring-1 focus:ring-blue-500/20 transition-all [color-scheme:dark]"
+                      className="flex-1 rounded-lg bg-zinc-800/50 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500/50 [color-scheme:dark]"
                     />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="flex items-center gap-2 text-xs font-semibold text-zinc-400">
-                      <CalendarIcon className="h-3 w-3" /> Time
-                    </label>
                     <input 
                       type="time" 
                       required
                       value={formData.time}
                       onChange={(e) => setFormData({ ...formData, time: e.target.value })}
-                      className="h-12 w-full rounded-xl border border-zinc-800 bg-zinc-900/50 px-4 text-sm text-white focus:border-blue-500/50 focus:outline-none focus:ring-1 focus:ring-blue-500/20 transition-all [color-scheme:dark]"
+                      className="w-28 rounded-lg bg-zinc-800/50 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500/50 [color-scheme:dark]"
                     />
                   </div>
+                  
+                  <div className="absolute left-8 top-8 bottom-4 w-px bg-zinc-800"></div>
+
+                  <div className="flex items-center gap-4">
+                    <div className="w-16 text-xs font-medium text-zinc-500">End</div>
+                    <input 
+                      type="date" 
+                      className="flex-1 rounded-lg bg-zinc-800/50 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500/50 [color-scheme:dark]"
+                    />
+                    <input 
+                      type="time" 
+                      className="w-28 rounded-lg bg-zinc-800/50 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500/50 [color-scheme:dark]"
+                    />
+                  </div>
+                </div>
+                
+                <div className="hidden sm:block w-px bg-zinc-800"></div>
+                
+                <div className="flex flex-col justify-center sm:pl-4">
+                  <div className="flex items-center gap-2 text-zinc-400 mb-1">
+                    <Globe className="h-3.5 w-3.5" />
+                    <span className="text-xs font-semibold">GMT+01:00</span>
+                  </div>
+                  <p className="text-xs text-zinc-500 pl-5">Lagos</p>
                 </div>
               </div>
 
               {/* Location */}
-              <div className="space-y-1.5">
-                <label className="flex items-center gap-2 text-xs font-semibold text-zinc-400">
-                  <MapPin className="h-3 w-3" /> Location
-                </label>
-                <input 
-                  type="text" 
-                  required
-                  value={formData.location}
-                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                  placeholder="e.g. Victoria Island, Lagos or Zoom link" 
-                  className="h-12 w-full rounded-xl border border-zinc-800 bg-zinc-900/50 px-4 text-sm text-white placeholder:text-zinc-600 focus:border-blue-500/50 focus:outline-none focus:ring-1 focus:ring-blue-500/20 transition-all"
-                />
-              </div>
-
-              {/* Map Link */}
-              <div className="space-y-1.5">
-                <label className="flex items-center gap-2 text-xs font-semibold text-zinc-400">
-                  <Globe className="h-3 w-3" /> Map / Venue Link <span className="text-zinc-600 font-normal">(optional)</span>
-                </label>
-                <input 
-                  type="url" 
-                  value={formData.mapLink}
-                  onChange={(e) => setFormData({ ...formData, mapLink: e.target.value })}
-                  placeholder="https://maps.google.com/..." 
-                  className="h-12 w-full rounded-xl border border-zinc-800 bg-zinc-900/50 px-4 text-sm text-white placeholder:text-zinc-600 focus:border-blue-500/50 focus:outline-none focus:ring-1 focus:ring-blue-500/20 transition-all"
-                />
+              <div className="mb-4 flex items-center gap-3 rounded-2xl border border-zinc-800 bg-zinc-900/30 px-4 py-3 focus-within:border-blue-500/50 focus-within:ring-1 focus-within:ring-blue-500/20">
+                <MapPin className="h-5 w-5 text-zinc-500" />
+                <div className="flex-1">
+                  <input 
+                    type="text" 
+                    required
+                    value={formData.location}
+                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                    placeholder="Add Event Location" 
+                    className="w-full bg-transparent text-sm font-medium text-white placeholder:text-zinc-500 focus:outline-none"
+                  />
+                  <p className="text-[11px] text-zinc-600">Offline location or virtual link</p>
+                </div>
               </div>
 
               {/* Description */}
-              <div className="space-y-1.5">
-                <label className="flex items-center gap-2 text-xs font-semibold text-zinc-400">
-                  <Search className="h-3 w-3" /> Description
-                </label>
+              <div className="mb-10 flex items-start gap-3 rounded-2xl border border-zinc-800 bg-zinc-900/30 px-4 py-3 focus-within:border-blue-500/50 focus-within:ring-1 focus-within:ring-blue-500/20">
+                <Search className="h-5 w-5 text-zinc-500 mt-0.5" />
                 <textarea 
-                  rows={3}
+                  rows={2}
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Tell your audience what the event is about..." 
-                  className="w-full rounded-xl border border-zinc-800 bg-zinc-900/50 p-4 text-sm text-white placeholder:text-zinc-600 focus:border-blue-500/50 focus:outline-none focus:ring-1 focus:ring-blue-500/20 transition-all resize-none"
+                  placeholder="Add Description" 
+                  className="w-full resize-none bg-transparent text-sm font-medium text-white placeholder:text-zinc-500 focus:outline-none"
                 />
               </div>
 
-              <div className="flex gap-3 pt-4">
-                <button 
-                  type="button"
-                  disabled={isSaving}
-                  onClick={() => setShowCreateForm(false)}
-                  className="flex-1 rounded-xl border border-zinc-800 bg-transparent py-3.5 text-sm font-semibold text-zinc-400 transition-colors hover:bg-zinc-800/50 hover:text-white"
-                >
-                  Cancel
-                </button>
+              {/* Event Options */}
+              <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-500 mb-4">Event Options</h3>
+              <div className="rounded-2xl border border-zinc-800 bg-zinc-900/30 divide-y divide-zinc-800 mb-8">
+                
+                {/* Ticket Price */}
+                <div className="flex items-center justify-between p-4">
+                  <div className="flex items-center gap-3 text-sm font-medium text-zinc-300">
+                    <Ticket className="h-4 w-4 text-zinc-500" /> Ticket Price
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => { setIsFree(!isFree); if (!isFree) setFormData({ ...formData, price: "0" }); }}
+                      className={`text-xs font-semibold ${isFree ? 'text-emerald-400' : 'text-zinc-500'}`}
+                    >
+                      {isFree ? 'Free' : 'Paid'}
+                    </button>
+                    {!isFree && (
+                      <input 
+                        type="number" 
+                        required
+                        value={formData.price}
+                        onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                        placeholder="0"
+                        className="w-20 rounded-md bg-zinc-800 px-2 py-1 text-right text-sm text-white focus:outline-none"
+                      />
+                    )}
+                  </div>
+                </div>
+
+                {/* Require Approval */}
+                <div className="flex items-center justify-between p-4">
+                  <div className="flex items-center gap-3 text-sm font-medium text-zinc-300">
+                    <Users className="h-4 w-4 text-zinc-500" /> Require Approval
+                  </div>
+                  <button type="button" className="relative h-6 w-10 rounded-full bg-blue-600 transition-colors">
+                    <div className="absolute right-1 top-1 h-4 w-4 rounded-full bg-white"></div>
+                  </button>
+                </div>
+
+                {/* Capacity */}
+                <div className="flex items-center justify-between p-4">
+                  <div className="flex items-center gap-3 text-sm font-medium text-zinc-300">
+                    <Users className="h-4 w-4 text-zinc-500" /> Capacity
+                  </div>
+                  <div className="text-sm text-zinc-500">Unlimited</div>
+                </div>
+              </div>
+
+              <div className="mt-auto pt-4">
                 <button 
                   type="submit"
                   disabled={isSaving}
-                  className="flex-1 flex items-center justify-center rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 py-3.5 text-sm font-bold text-white shadow-lg shadow-blue-600/20 transition-all hover:shadow-blue-600/40 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 disabled:hover:scale-100"
+                  className="w-full flex items-center justify-center rounded-xl bg-[#c2415d] py-4 text-sm font-bold text-white shadow-lg transition-all hover:bg-[#a9364f] hover:scale-[1.01] active:scale-[0.99] disabled:opacity-70 disabled:hover:scale-100"
                 >
-                  {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : "🚀 Launch Event"}
+                  {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : "Create Event"}
                 </button>
               </div>
             </form>
