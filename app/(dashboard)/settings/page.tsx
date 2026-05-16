@@ -56,69 +56,82 @@ export default function SettingsPage() {
     setIsSavingProfile(true);
 
     try {
-      let finalAvatarUrl = profile?.avatar_url;
+      console.log("Starting save profile...");
+      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Request timed out after 10 seconds")), 10000));
+      
+      await Promise.race([
+        (async () => {
+          let finalAvatarUrl = profile?.avatar_url;
 
-      // If a new photo was selected, upload it
-      if (photoFile) {
-        const fileExt = photoFile.name.split(".").pop();
-        const filePath = `${user.id}/avatar.${fileExt}`;
+          if (photoFile) {
+            console.log("Uploading photo...");
+            const fileExt = photoFile.name.split(".").pop();
+            const filePath = `${user.id}/avatar.${fileExt}`;
 
-        const { error: uploadError } = await supabase.storage
-          .from("avatars")
-          .upload(filePath, photoFile, { upsert: true });
+            const { error: uploadError } = await supabase.storage
+              .from("avatars")
+              .upload(filePath, photoFile, { upsert: true });
 
-        if (uploadError) {
-          throw new Error("Failed to upload avatar: " + uploadError.message);
-        }
+            if (uploadError) {
+              throw new Error("Avatar upload failed: " + uploadError.message);
+            }
 
-        const { data: publicUrlData } = supabase.storage
-          .from("avatars")
-          .getPublicUrl(filePath);
-        finalAvatarUrl = publicUrlData.publicUrl;
-      }
+            const { data: publicUrlData } = supabase.storage
+              .from("avatars")
+              .getPublicUrl(filePath);
+            finalAvatarUrl = publicUrlData.publicUrl;
+            console.log("Photo uploaded!");
+          }
 
-      // Prepare data
-      const profileData = {
-        first_name: firstName || null,
-        last_name: lastName || null,
-        handle: handle ? handle.toLowerCase() : null,
-        bio: bio || null,
-        category: category || null,
-        location: location || null,
-        avatar_url: finalAvatarUrl,
-      };
+          const profileData = {
+            first_name: firstName || null,
+            last_name: lastName || null,
+            handle: handle ? handle.toLowerCase() : null,
+            bio: bio || null,
+            category: category || null,
+            location: location || null,
+            avatar_url: finalAvatarUrl,
+          };
 
-      // Update profile in DB
-      const { error: updateError } = await supabase
-        .from("profiles")
-        .update(profileData)
-        .eq("id", user.id);
+          console.log("Updating profile in DB...", profileData);
+          const { error: updateError } = await supabase
+            .from("profiles")
+            .update(profileData)
+            .eq("id", user.id);
 
-      if (updateError) {
-        console.error("Update error:", updateError);
-        if (updateError.code === "23505") {
-          throw new Error("That handle is already taken. Try another one.");
-        }
-        
-        // Fallback to insert if update fails (row doesn't exist)
-        const { error: insertError } = await supabase
-          .from("profiles")
-          .insert({ id: user.id, ...profileData });
-          
-        if (insertError) {
-          console.error("Insert error:", insertError);
-          throw new Error(insertError.message);
-        }
-      }
+          if (updateError) {
+            console.error("Update error:", updateError);
+            if (updateError.code === "23505") {
+              throw new Error("That handle is already taken. Try another one.");
+            }
+            
+            console.log("Update failed, trying insert...");
+            const { error: insertError } = await supabase
+              .from("profiles")
+              .insert({ id: user.id, ...profileData });
+              
+            if (insertError) {
+              console.error("Insert error:", insertError);
+              throw new Error("Failed to save profile: " + insertError.message);
+            }
+          }
 
-      await refreshProfile();
+          console.log("Refreshing profile context...");
+          await refreshProfile();
+          console.log("Save complete!");
+        })(),
+        timeoutPromise
+      ]);
+
       toast.success("Profile updated successfully!");
     } catch (err: any) {
+      console.error("Save profile error:", err);
       toast.error(err.message || "Failed to update profile");
     } finally {
       setIsSavingProfile(false);
     }
   };
+  
 
   const handleUpdatePassword = async () => {
     if (!newPassword || !confirmPassword) {
