@@ -77,25 +77,38 @@ export default function SettingsPage() {
         finalAvatarUrl = publicUrlData.publicUrl;
       }
 
+      // Prepare data
+      const profileData = {
+        first_name: firstName || null,
+        last_name: lastName || null,
+        handle: handle ? handle.toLowerCase() : null,
+        bio: bio || null,
+        category: category || null,
+        location: location || null,
+        avatar_url: finalAvatarUrl,
+      };
+
       // Update profile in DB
       const { error: updateError } = await supabase
         .from("profiles")
-        .update({
-          first_name: firstName,
-          last_name: lastName,
-          handle: handle.toLowerCase(),
-          bio,
-          category,
-          location,
-          avatar_url: finalAvatarUrl,
-        })
+        .update(profileData)
         .eq("id", user.id);
 
       if (updateError) {
+        console.error("Update error:", updateError);
         if (updateError.code === "23505") {
           throw new Error("That handle is already taken. Try another one.");
         }
-        throw new Error(updateError.message);
+        
+        // Fallback to insert if update fails (row doesn't exist)
+        const { error: insertError } = await supabase
+          .from("profiles")
+          .insert({ id: user.id, ...profileData });
+          
+        if (insertError) {
+          console.error("Insert error:", insertError);
+          throw new Error(insertError.message);
+        }
       }
 
       await refreshProfile();
