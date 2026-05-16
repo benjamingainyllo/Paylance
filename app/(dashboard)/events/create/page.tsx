@@ -4,9 +4,10 @@ import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { CalendarIcon, ImagePlus, Loader2, MapPin } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { AuthGuard } from "@/components/auth/auth-guard";
+import { useAuth } from "@/components/auth/auth-provider";
 
 export default function CreateEventPage() {
+  const { user } = useAuth();
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -49,7 +50,6 @@ export default function CreateEventPage() {
     const supabase = createClient();
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
       let coverImageUrl = null;
@@ -101,7 +101,6 @@ export default function CreateEventPage() {
   };
 
   return (
-    <AuthGuard>
       <div className="flex h-screen w-full bg-[#0c0c0e] overflow-hidden text-white">
         {/* Left Sidebar */}
         <div className="w-[300px] border-r border-zinc-800 bg-zinc-900/50 flex-col hidden lg:flex">
@@ -334,6 +333,5 @@ export default function CreateEventPage() {
           </form>
         </div>
       </div>
-    </AuthGuard>
   );
 }

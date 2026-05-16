@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { Plus, Calendar as CalendarIcon, MapPin, Users, MoreHorizontal, Search, Ticket, Zap, DollarSign, TrendingUp, ImagePlus, Globe, ToggleLeft, ToggleRight, Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Plus, Calendar as CalendarIcon, MapPin, Users, MoreHorizontal, Search, Ticket, Zap, DollarSign, TrendingUp } from "lucide-react";
 import { TopFilters } from "@/components/dashboard/top-filters";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { PerformanceChart } from "@/components/dashboard/performance-chart";
@@ -51,98 +51,6 @@ export default function EventsPage() {
 
   if (!mounted) return null;
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setPhotoFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => setImagePreview(reader.result as string);
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleImageDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    const file = e.dataTransfer.files?.[0];
-    if (file && file.type.startsWith("image/")) {
-      setPhotoFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => setImagePreview(reader.result as string);
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleCreateEvent = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) return;
-    
-    setIsSaving(true);
-    
-    try {
-      let finalImageUrl = null;
-      
-      // Upload image if selected
-      if (photoFile) {
-        const fileExt = photoFile.name.split(".").pop();
-        const fileName = `${user.id}_${Date.now()}.${fileExt}`;
-        const filePath = `${user.id}/${fileName}`;
-        
-        const { error: uploadError } = await supabase.storage
-          .from("event_covers")
-          .upload(filePath, photoFile);
-          
-        if (uploadError) throw new Error("Failed to upload image: " + uploadError.message);
-        
-        const { data: publicUrlData } = supabase.storage
-          .from("event_covers")
-          .getPublicUrl(filePath);
-          
-        finalImageUrl = publicUrlData.publicUrl;
-      }
-      
-      // Insert Event into Database
-      const eventPrice = isFree ? 0 : parseFloat(formData.price || "0");
-      
-      const { data, error } = await supabase
-        .from("events")
-        .insert({
-          creator_id: user.id,
-          title: formData.title,
-          description: formData.description,
-          date: formData.date,
-          time: formData.time,
-          location: formData.location,
-          map_link: formData.mapLink,
-          price_naira: eventPrice,
-          is_free: isFree,
-          cover_image_url: finalImageUrl,
-          status: "Upcoming",
-          attendees_count: 0,
-          revenue: 0
-        })
-        .select()
-        .single();
-        
-      if (error) throw new Error(error.message);
-      
-      // Update local state
-      setEvents([data, ...events]);
-      
-      // Reset form
-      setShowCreateForm(false);
-      setIsFree(false);
-      setImagePreview(null);
-      setPhotoFile(null);
-      setFormData({ title: "", date: "", time: "", location: "", description: "", price: "0", mapLink: "" });
-      toast.success("Event created successfully!");
-      
-    } catch (err: any) {
-      console.error(err);
-      toast.error(err.message || "Failed to create event");
-    } finally {
-      setIsSaving(false);
-    }
-  };
 
   const filteredEvents = events.filter(event => 
     event.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -204,7 +112,7 @@ export default function EventsPage() {
              />
           </div>
           <button 
-            onClick={() => setShowCreateForm(true)}
+            onClick={() => router.push('/events/create')}
             className="flex h-9 items-center justify-center gap-2 rounded-lg bg-white px-4 text-xs font-semibold text-black transition-transform hover:scale-[1.02] active:scale-[0.98]"
           >
             <Plus className="h-4 w-4" />
