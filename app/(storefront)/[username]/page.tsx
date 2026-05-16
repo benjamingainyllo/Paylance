@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+import { useAuth } from "@/components/auth/auth-provider";
 import { 
   Share2, 
   MoreHorizontal, 
@@ -17,43 +19,120 @@ import {
   Youtube,
   ChevronRight,
   MapPin,
-  User
+  User,
+  Loader2
 } from "lucide-react";
+
+interface CreatorProfile {
+  id: string;
+  handle: string;
+  first_name: string | null;
+  last_name: string | null;
+  bio: string | null;
+  category: string | null;
+  location: string | null;
+  avatar_url: string | null;
+}
+
+interface Offer {
+  id: string;
+  title: string;
+  description: string | null;
+  price_naira: number;
+  cover_image_url: string | null;
+  offer_type: string;
+}
 
 export default function StorefrontPage() {
   const params = useParams();
   const username = params?.username as string;
-  const [userName, setUserName] = useState("Creator");
-  const [userBio, setUserBio] = useState("");
-  const [userCategory, setUserCategory] = useState("");
-  const [userLocation, setUserLocation] = useState("");
-  const [userPhoto, setUserPhoto] = useState<string | null>(null);
+  const { user, profile: currentUserProfile } = useAuth();
+  const supabase = createClient();
+
+  const [creator, setCreator] = useState<CreatorProfile | null>(null);
+  const [offers, setOffers] = useState<Offer[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const [activeTab, setActiveTab] = useState<"offers" | "events" | "links">("offers");
 
   useEffect(() => {
-    setMounted(true);
     if (!username) return;
-    
-    // For prototype: If the URL handle matches the local one, show local data and set owner
-    const localHandle = localStorage.getItem("userHandle");
-    if (localHandle === username) {
-      setIsOwner(true);
-      const name = localStorage.getItem("userName");
-      const bio = localStorage.getItem("userBio");
-      const category = localStorage.getItem("userCategory");
-      const location = localStorage.getItem("userLocation");
-      const photo = localStorage.getItem("userPhoto");
-      
-      if (name) setUserName(name);
-      if (bio) setUserBio(bio);
-      if (category) setUserCategory(category.charAt(0).toUpperCase() + category.slice(1));
-      if (location) setUserLocation(location);
-      if (photo) setUserPhoto(photo);
-    }
-  }, [username]);
 
-  if (!mounted) return null;
+    const fetchCreator = async () => {
+      setLoading(true);
+
+      // Fetch creator profile by handle
+      const { data: profileData, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("handle", username)
+        .single();
+
+      if (error || !profileData) {
+        setNotFound(true);
+        setLoading(false);
+        return;
+      }
+
+      setCreator(profileData as CreatorProfile);
+
+      // Check if this is the owner viewing their own profile
+      if (user && user.id === profileData.id) {
+        setIsOwner(true);
+      }
+
+      // Fetch published offers for this creator
+      const { data: offersData } = await supabase
+        .from("offers")
+        .select("*")
+        .eq("user_id", profileData.id)
+        .eq("is_published", true)
+        .order("created_at", { ascending: false });
+
+      if (offersData) {
+        setOffers(offersData as Offer[]);
+      }
+
+      setLoading(false);
+    };
+
+    fetchCreator();
+  }, [username, user]);
+
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-black text-white flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-zinc-600" />
+      </main>
+    );
+  }
+
+  if (notFound) {
+    return (
+      <main className="min-h-screen bg-black text-white flex flex-col items-center justify-center gap-4">
+        <div className="h-20 w-20 rounded-full bg-zinc-900 flex items-center justify-center border border-zinc-800">
+          <User className="h-10 w-10 text-zinc-700" />
+        </div>
+        <h1 className="text-xl font-bold">Creator not found</h1>
+        <p className="text-sm text-zinc-500">No creator with the handle @{username} exists.</p>
+        <a href="/" className="mt-4 rounded-xl bg-blue-600 px-6 py-3 text-sm font-bold text-white hover:bg-blue-500 transition-colors">
+          Go to Paylance
+        </a>
+      </main>
+    );
+  }
+
+  const displayName = [creator?.first_name, creator?.last_name].filter(Boolean).join(" ") || "Creator";
+  const categoryLabel = creator?.category ? creator.category.charAt(0).toUpperCase() + creator.category.slice(1) : "";
+
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat("en-NG", {
+      style: "currency",
+      currency: "NGN",
+      minimumFractionDigits: 0,
+    }).format(price).replace("NGN", "₦");
+  };
 
   return (
     <main className="min-h-screen bg-black text-white font-sans selection:bg-blue-500/30">
@@ -92,8 +171,8 @@ export default function StorefrontPage() {
           <div className="relative mx-auto mb-6 h-28 w-28">
             <div className="absolute inset-0 animate-pulse rounded-full bg-blue-600/20 blur-xl"></div>
             <div className="relative h-full w-full rounded-full border-2 border-zinc-800 bg-zinc-900 p-1 overflow-hidden">
-              {userPhoto ? (
-                <img src={userPhoto} alt={userName} className="h-full w-full rounded-full object-cover" />
+              {creator?.avatar_url ? (
+                <img src={creator.avatar_url} alt={displayName} className="h-full w-full rounded-full object-cover" />
               ) : (
                 <div className="flex h-full w-full items-center justify-center rounded-full bg-zinc-800 text-zinc-600">
                   <User className="h-12 w-12" />
@@ -105,21 +184,21 @@ export default function StorefrontPage() {
             </div>
           </div>
 
-          <h1 className="text-2xl font-bold tracking-tight">{userName}</h1>
+          <h1 className="text-2xl font-bold tracking-tight">{displayName}</h1>
           <div className="mt-2 flex items-center justify-center gap-2 text-sm font-medium text-blue-500">
             <span>@{username}</span>
-            {userCategory && <span>• {userCategory}</span>}
+            {categoryLabel && <span>• {categoryLabel}</span>}
           </div>
           
-          {userLocation && (
+          {creator?.location && (
             <div className="mt-2 flex items-center justify-center gap-1 text-xs text-zinc-500">
               <MapPin className="h-3 w-3" />
-              {userLocation}
+              {creator.location}
             </div>
           )}
 
           <p className="mt-4 px-4 text-sm leading-relaxed text-zinc-400">
-            {userBio || "No bio yet. This creator is still setting up their space."}
+            {creator?.bio || "No bio yet. This creator is still setting up their space."}
           </p>
 
           {/* Social Links Placeholder */}
@@ -140,22 +219,109 @@ export default function StorefrontPage() {
           </div>
         </div>
 
-        {/* Content Tabs Placeholder */}
+        {/* Content Tabs */}
         <div className="mt-12 space-y-4">
           <div className="flex items-center justify-around border-b border-zinc-800/50 pb-4">
-            <button className="text-sm font-semibold text-white border-b-2 border-blue-500 pb-4 px-4 -mb-[18px]">Offers</button>
-            <button className="text-sm font-medium text-zinc-500 hover:text-zinc-300 transition-colors">Events</button>
-            <button className="text-sm font-medium text-zinc-500 hover:text-zinc-300 transition-colors">Links</button>
+            <button 
+              onClick={() => setActiveTab("offers")}
+              className={`text-sm font-semibold pb-4 px-4 -mb-[18px] transition-colors ${
+                activeTab === "offers" 
+                  ? "text-white border-b-2 border-blue-500" 
+                  : "text-zinc-500 hover:text-zinc-300"
+              }`}
+            >
+              Offers
+            </button>
+            <button 
+              onClick={() => setActiveTab("events")}
+              className={`text-sm font-medium pb-4 px-4 -mb-[18px] transition-colors ${
+                activeTab === "events" 
+                  ? "text-white border-b-2 border-blue-500" 
+                  : "text-zinc-500 hover:text-zinc-300"
+              }`}
+            >
+              Events
+            </button>
+            <button 
+              onClick={() => setActiveTab("links")}
+              className={`text-sm font-medium pb-4 px-4 -mb-[18px] transition-colors ${
+                activeTab === "links" 
+                  ? "text-white border-b-2 border-blue-500" 
+                  : "text-zinc-500 hover:text-zinc-300"
+              }`}
+            >
+              Links
+            </button>
           </div>
 
-          {/* Dummy State: If no content, show placeholder */}
-          <div className="pt-12 text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-zinc-900/50 border border-zinc-800 text-zinc-700">
-              <ShoppingBag className="h-8 w-8" />
+          {/* Offers Tab */}
+          {activeTab === "offers" && (
+            <>
+              {offers.length > 0 ? (
+                <div className="space-y-4 pt-4">
+                  {offers.map((offer) => (
+                    <a
+                      key={offer.id}
+                      href={`/offer/${offer.id}`}
+                      className="block rounded-2xl border border-zinc-800 bg-zinc-900/50 p-4 backdrop-blur-sm transition-all hover:border-zinc-700 hover:bg-zinc-800/50 active:scale-[0.98]"
+                    >
+                      <div className="flex items-center gap-4">
+                        {offer.cover_image_url ? (
+                          <img
+                            src={offer.cover_image_url}
+                            alt={offer.title}
+                            className="h-16 w-16 rounded-xl object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600/20 to-indigo-600/20 border border-zinc-800">
+                            <ShoppingBag className="h-6 w-6 text-blue-400" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-white truncate">{offer.title}</h3>
+                          <p className="text-xs text-zinc-500 mt-1 line-clamp-1">{offer.description}</p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="text-sm font-bold text-emerald-400">{formatPrice(offer.price_naira)}</p>
+                          <ChevronRight className="h-4 w-4 text-zinc-600 ml-auto mt-1" />
+                        </div>
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              ) : (
+                <div className="pt-12 text-center">
+                  <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-zinc-900/50 border border-zinc-800 text-zinc-700">
+                    <ShoppingBag className="h-8 w-8" />
+                  </div>
+                  <h3 className="text-sm font-semibold text-zinc-300">No active offers</h3>
+                  <p className="mt-1 text-xs text-zinc-600">This creator hasn&apos;t published any offers yet.</p>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Events Tab */}
+          {activeTab === "events" && (
+            <div className="pt-12 text-center">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-zinc-900/50 border border-zinc-800 text-zinc-700">
+                <Calendar className="h-8 w-8" />
+              </div>
+              <h3 className="text-sm font-semibold text-zinc-300">No upcoming events</h3>
+              <p className="mt-1 text-xs text-zinc-600">Check back later for events from this creator.</p>
             </div>
-            <h3 className="text-sm font-semibold text-zinc-300">No active offers</h3>
-            <p className="mt-1 text-xs text-zinc-600">This creator hasn&apos;t published any offers yet.</p>
-          </div>
+          )}
+
+          {/* Links Tab */}
+          {activeTab === "links" && (
+            <div className="pt-12 text-center">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-zinc-900/50 border border-zinc-800 text-zinc-700">
+                <ExternalLink className="h-8 w-8" />
+              </div>
+              <h3 className="text-sm font-semibold text-zinc-300">No links added</h3>
+              <p className="mt-1 text-xs text-zinc-600">This creator hasn&apos;t added any links yet.</p>
+            </div>
+          )}
         </div>
 
         {/* Footer Brand */}
