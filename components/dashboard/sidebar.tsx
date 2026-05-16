@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
+import { useAuth } from "@/components/auth/auth-provider";
 import {
   Search,
   ChevronsLeft,
@@ -50,33 +51,27 @@ const navGroups = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { user, profile, signOut } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [theme, setTheme] = useState("dark");
-  const [userName, setUserName] = useState("Benjamin");
-  const [userHandle, setUserHandle] = useState("");
-  const [userPhoto, setUserPhoto] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
+
+  // Derive display values from auth context
+  const userName = profile?.first_name || user?.user_metadata?.first_name || "Creator";
+  const userEmail = user?.email || "creator@paylance.me";
+  const userHandle = profile?.handle || "";
+  const userPhoto = profile?.avatar_url || null;
 
   useEffect(() => {
     setMounted(true);
     const currentTheme = document.documentElement.getAttribute("data-theme") || "dark";
     setTheme(currentTheme);
-    
-    const storedName = localStorage.getItem("userName");
-    if (storedName) setUserName(storedName);
-
-    const storedHandle = localStorage.getItem("userHandle");
-    if (storedHandle) setUserHandle(storedHandle);
-
-    const storedPhoto = localStorage.getItem("userPhoto");
-    if (storedPhoto) setUserPhoto(storedPhoto);
   }, []);
 
   if (!mounted) return null;
 
-  const handleLogout = () => {
-    localStorage.clear(); // Clear everything for a clean logout
-    window.location.href = "/";
+  const handleLogout = async () => {
+    await signOut();
   };
 
   const toggleTheme = () => {
@@ -150,7 +145,6 @@ export function Sidebar() {
                   <Link
                     key={item.label}
                     href={item.href as any}
-                    onClick={item.label === "Log out" ? handleLogout : undefined}
                     title={isCollapsed ? item.label : undefined}
                     className={`group flex h-10 items-center rounded-xl transition-all duration-200 ${
                       isActive
@@ -202,6 +196,24 @@ export function Sidebar() {
             Settings
           </span>
         </Link>
+
+        {/* Profile Page Link */}
+        {userHandle && (
+          <Link
+            href={`/${userHandle}` as any}
+            target="_blank"
+            className={`mb-1 flex h-10 w-full items-center rounded-xl bg-transparent transition-colors hover:bg-zinc-800/50 hover:text-white ${
+              isCollapsed ? "justify-center px-0" : "px-3 gap-3 text-zinc-400"
+            }`}
+          >
+            <ExternalLink strokeWidth={1.5} className={`shrink-0 ${isCollapsed ? "h-5 w-5" : "h-[18px] w-[18px]"}`} />
+            <span className={`text-sm font-medium transition-all duration-300 ${
+              isCollapsed ? "hidden opacity-0" : "opacity-100"
+            }`}>
+              My Profile
+            </span>
+          </Link>
+        )}
 
         {/* Theme Toggle Button */}
         <button
@@ -279,7 +291,7 @@ export function Sidebar() {
             isCollapsed ? "hidden opacity-0" : "opacity-100"
           }`}>
             <span className="truncate text-sm font-semibold text-white">{userName}</span>
-            <span className="truncate text-xs text-zinc-500">{userName.toLowerCase()}@example.com</span>
+            <span className="truncate text-xs text-zinc-500">{userEmail}</span>
           </div>
         </div>
       </div>

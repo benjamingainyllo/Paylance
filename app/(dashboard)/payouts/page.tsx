@@ -69,7 +69,7 @@ export default function PayoutsPage() {
   const metrics = [
     {
       title: "Available Balance",
-      value: "Rwf 850,400",
+      value: "₦850,400",
       change: "Safe to withdraw",
       icon: Wallet,
       iconColor: "#3B82F6",
@@ -77,7 +77,7 @@ export default function PayoutsPage() {
     },
     {
       title: "Pending Balance",
-      value: "Rwf 120,000",
+      value: "₦120,000",
       change: "Locked for 3 days",
       icon: Clock,
       iconColor: "#F97316",
@@ -85,7 +85,7 @@ export default function PayoutsPage() {
     },
     {
       title: "Total Withdrawn",
-      value: "Rwf 5.2M",
+      value: "₦5.2M",
       change: "Lifetime payouts",
       icon: CheckCircle2,
       iconColor: "#22C55E",
@@ -93,7 +93,7 @@ export default function PayoutsPage() {
     },
     {
       title: "Processing",
-      value: "Rwf 0",
+      value: "₦0",
       change: "Active withdrawals",
       icon: AlertCircle,
       iconColor: "#A855F7",
@@ -165,7 +165,7 @@ export default function PayoutsPage() {
                     <td className="px-6 py-4 text-xs font-medium text-text">{payout.date}</td>
                     <td className="px-6 py-4 text-[11px] text-subtle font-mono">{payout.id}</td>
                     <td className="px-6 py-4 text-xs text-subtle">{payout.bank}</td>
-                    <td className="px-6 py-4 text-xs font-bold text-text">Rwf {payout.amount.toLocaleString()}</td>
+                    <td className="px-6 py-4 text-xs font-bold text-text">₦{payout.amount.toLocaleString()}</td>
                     <td className="px-6 py-4">
                       <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-[10px] font-bold text-emerald-500 border border-emerald-500/20">
                         <CheckCircle2 className="h-3 w-3" />
@@ -218,7 +218,7 @@ export default function PayoutsPage() {
               <div>
                 <div className="flex items-center justify-between text-[11px] mb-2">
                   <span className="text-subtle uppercase font-bold tracking-widest">Daily Limit</span>
-                  <span className="text-text font-bold">Rwf 850,400 / Rwf 2.5M</span>
+                  <span className="text-text font-bold">₦850,400 / ₦2.5M</span>
                 </div>
                 <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
                   <div className="h-full bg-blue-600 rounded-full" style={{ width: '34%' }}></div>
@@ -248,7 +248,7 @@ export default function PayoutsPage() {
               <div className="space-y-2">
                 <label className="text-[10px] font-bold uppercase tracking-widest text-subtle">Withdrawal Amount</label>
                 <div className="relative">
-                   <div className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-bold text-zinc-500">Rwf</div>
+                   <div className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-bold text-zinc-500">₦</div>
                    <input 
                      type="number" 
                      required
@@ -266,8 +266,8 @@ export default function PayoutsPage() {
                    </button>
                 </div>
                 <div className="flex items-center justify-between pt-1">
-                   <span className="text-[10px] text-subtle">Available: Rwf 850,400</span>
-                   <span className="text-[10px] text-subtle">Minimum: Rwf 1,000</span>
+                   <span className="text-[10px] text-subtle">Available: ₦850,400</span>
+                   <span className="text-[10px] text-subtle">Minimum: ₦1,000</span>
                 </div>
               </div>
 

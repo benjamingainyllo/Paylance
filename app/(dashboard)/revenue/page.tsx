@@ -13,7 +13,7 @@ import { RecentActivities } from "@/components/dashboard/recent-activities";
 const metrics = [
   {
     title: "Total Revenue",
-    value: "Rwf100",
+    value: "₦100",
     change: "vs last 7 days: 100%",
     icon: CircleDollarSign,
     iconColor: "#22C55E",

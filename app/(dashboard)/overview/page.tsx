@@ -5,54 +5,54 @@ import { CircleDollarSign, Eye, FolderPlus, UserRoundPlus } from "lucide-react";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { PerformanceChart } from "@/components/dashboard/performance-chart";
 import { TopFilters } from "@/components/dashboard/top-filters";
-
-const metrics = [
-  {
-    title: "Total Revenue",
-    value: "$100",
-    change: "vs last 7 days +100%",
-    icon: CircleDollarSign,
-    iconColor: "#22C55E",
-    iconBgColor: "rgba(34, 197, 94, 0.1)"
-  },
-  {
-    title: "Store visits",
-    value: "4",
-    change: "vs last 7 days +100%",
-    icon: Eye,
-    iconColor: "#F97316",
-    iconBgColor: "rgba(249, 115, 22, 0.1)"
-  },
-  {
-    title: "Leads",
-    value: "1",
-    change: "vs last 7 days +100%",
-    icon: UserRoundPlus,
-    iconColor: "#8B5CF6",
-    iconBgColor: "rgba(139, 92, 246, 0.1)"
-  },
-  {
-    title: "Offers Created",
-    value: "2",
-    change: "vs last 7 days 0.0%",
-    icon: FolderPlus,
-    iconColor: "#505081",
-    iconBgColor: "rgba(80, 80, 129, 0.1)"
-  }
-];
+import { useCurrency } from "@/hooks/use-currency";
+import { useAuth } from "@/components/auth/auth-provider";
 
 export default function OverviewPage() {
-  const [userName, setUserName] = useState("Benjamin");
-  const [userBio, setUserBio] = useState("Track your revenue, audience, and growth experiments.");
+  const { profile } = useAuth();
   const [mounted, setMounted] = useState(false);
+  const { formatPrice } = useCurrency();
+
+  const userName = profile?.first_name || "Creator";
+  const userBio = profile?.bio || "Track your revenue, audience, and growth experiments.";
+
+  const metrics = [
+    {
+      title: "Total Revenue",
+      value: formatPrice(100),
+      change: "vs last 7 days +100%",
+      icon: CircleDollarSign,
+      iconColor: "#22C55E",
+      iconBgColor: "rgba(34, 197, 94, 0.1)"
+    },
+    {
+      title: "Store visits",
+      value: "4",
+      change: "vs last 7 days +100%",
+      icon: Eye,
+      iconColor: "#F97316",
+      iconBgColor: "rgba(249, 115, 22, 0.1)"
+    },
+    {
+      title: "Leads",
+      value: "1",
+      change: "vs last 7 days +100%",
+      icon: UserRoundPlus,
+      iconColor: "#8B5CF6",
+      iconBgColor: "rgba(139, 92, 246, 0.1)"
+    },
+    {
+      title: "Offers Created",
+      value: "2",
+      change: "vs last 7 days 0.0%",
+      icon: FolderPlus,
+      iconColor: "#505081",
+      iconBgColor: "rgba(80, 80, 129, 0.1)"
+    }
+  ];
 
   useEffect(() => {
     setMounted(true);
-    const name = localStorage.getItem("userName");
-    if (name) setUserName(name);
-    
-    const bio = localStorage.getItem("userBio");
-    if (bio) setUserBio(bio);
   }, []);
 
   if (!mounted) return null;
@@ -83,7 +83,7 @@ export default function OverviewPage() {
           <div className="mt-5 rounded-lg border border-border bg-muted p-4">
             <p className="text-sm font-medium text-text">Best performing offer</p>
             <p className="text-xs text-subtle">Brand Design Masterclass</p>
-            <p className="mt-3 text-right text-sm font-semibold text-[#22c55e]">$100</p>
+            <p className="mt-3 text-right text-sm font-semibold text-[#22c55e]">{formatPrice(100)}</p>
           </div>
         </section>
       </div>

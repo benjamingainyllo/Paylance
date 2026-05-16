@@ -42,11 +42,12 @@ The goal is to go beyond a simple storefront and help creators run revenue, audi
   - `/customers` -> `/audience`
   - `/analytics` -> `/experiments`
 - Theme support added:
-  - Dark and Light mode toggle
+  - "Blue Eclipse" Dark theme and Light mode toggle
 - Branding updates:
   - Bricolage Grotesque font
   - Sidebar profile section pinned to bottom
   - Custom avatar integrated
+  - Currency standardized to Nigerian Naira (₦)
 - Utilities:
   - Supabase client bootstrap
   - Paystack initialize transaction helper
@@ -106,7 +107,7 @@ To avoid looking like a copy, the app should evolve into a distinct visual ident
 ## 30-Day Execution Plan
 
 - Week 1: Rebrand UI system + navigation redesign
-- Week 1 status: In progress (new IA routes shipped)
+- Week 1 status: Completed
 - Week 2: Offer builder + upsell checkout MVP
 - Week 3: CRM tagging + broadcast flows
 - Week 4: Membership tiers + analytics v2 + experiment lab MVP

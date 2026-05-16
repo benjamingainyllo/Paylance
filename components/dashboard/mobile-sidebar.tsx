@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
+import { useAuth } from "@/components/auth/auth-provider";
 import {
   Search,
   X,
@@ -21,7 +22,8 @@ import {
   Sun,
   Moon,
   UserCircle,
-  ExternalLink
+  ExternalLink,
+  Wallet
 } from "lucide-react";
 
 const navGroups = [
@@ -31,6 +33,7 @@ const navGroups = [
       { label: "Overview", icon: LayoutGrid, href: "/overview" },
       { label: "Audience", icon: UsersRound, href: "/audience" },
       { label: "Revenue", icon: CreditCard, href: "/revenue" },
+      { label: "Payouts", icon: Wallet, href: "/payouts" },
       { label: "Events", icon: Calendar, href: "/events" },
     ]
   },
@@ -52,30 +55,24 @@ interface MobileSidebarProps {
 
 export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
   const pathname = usePathname();
+  const { user, profile, signOut } = useAuth();
   const [theme, setTheme] = useState("dark");
-  const [userName, setUserName] = useState("Benjamin");
-  const [userHandle, setUserHandle] = useState("");
-  const [userPhoto, setUserPhoto] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
+
+  // Derive display values from auth context
+  const userName = profile?.first_name || user?.user_metadata?.first_name || "Creator";
+  const userEmail = user?.email || "creator@paylance.me";
+  const userHandle = profile?.handle || "";
+  const userPhoto = profile?.avatar_url || null;
 
   useEffect(() => {
     setMounted(true);
     const currentTheme = document.documentElement.getAttribute("data-theme") || "dark";
     setTheme(currentTheme);
-    
-    const storedName = localStorage.getItem("userName");
-    if (storedName) setUserName(storedName);
-
-    const storedHandle = localStorage.getItem("userHandle");
-    if (storedHandle) setUserHandle(storedHandle);
-
-    const storedPhoto = localStorage.getItem("userPhoto");
-    if (storedPhoto) setUserPhoto(storedPhoto);
   }, []);
 
-  const handleLogout = () => {
-    localStorage.clear();
-    window.location.href = "/";
+  const handleLogout = async () => {
+    await signOut();
   };
 
   const toggleTheme = () => {
@@ -99,6 +96,7 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
   // Close sidebar when clicking a link
   useEffect(() => {
     onClose();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
   if (!mounted) return null;
@@ -185,6 +183,18 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
             <span className="text-sm font-medium">Settings</span>
           </Link>
 
+          {/* Profile Page Link */}
+          {userHandle && (
+            <Link
+              href={`/${userHandle}` as any}
+              target="_blank"
+              className="mb-1 flex h-11 w-full items-center gap-3 rounded-xl bg-transparent px-3 text-zinc-400 transition-colors hover:bg-zinc-800/50 hover:text-white"
+            >
+              <ExternalLink strokeWidth={1.5} className="h-5 w-5 shrink-0" />
+              <span className="text-sm font-medium">My Profile</span>
+            </Link>
+          )}
+
           <button
             onClick={toggleTheme}
             className="mb-1 flex h-11 w-full items-center justify-between rounded-xl bg-transparent px-3 text-zinc-400 transition-colors hover:bg-zinc-800/50 hover:text-white"
@@ -220,7 +230,7 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
             <span className="text-sm font-medium">Log out</span>
           </button>
 
-          {/* User Identity Section - Moved to Bottom */}
+          {/* User Identity Section */}
           <div className="flex items-center gap-3 px-1">
             <div className="relative shrink-0">
               {userPhoto ? (
@@ -240,7 +250,7 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
             </div>
             <div className="flex min-w-0 flex-1 flex-col">
               <span className="truncate text-sm font-semibold text-white">{userName}</span>
-              <span className="truncate text-xs text-zinc-500">{userName.toLowerCase()}@example.com</span>
+              <span className="truncate text-xs text-zinc-500">{userEmail}</span>
             </div>
           </div>
         </div>

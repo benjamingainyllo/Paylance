@@ -8,7 +8,7 @@ const tests = [
   },
   {
     name: "Offer pricing test",
-    hypothesis: "$39 entry price may outperform $49 on conversion and total revenue.",
+    hypothesis: "₦39 entry price may outperform ₦49 on conversion and total revenue.",
     status: "Queued"
   },
   {

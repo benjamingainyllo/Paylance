@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Bricolage_Grotesque } from "next/font/google";
 import "./globals.css";
+import { AuthProvider } from "@/components/auth/auth-provider";
+import { Toaster } from "sonner";
 
 const bricolageGrotesque = Bricolage_Grotesque({
   subsets: ["latin"],
@@ -11,8 +13,6 @@ export const metadata: Metadata = {
   title: "Paylance",
   description: "Monetization platform for creators."
 };
-
-import { AuthGuard } from "@/components/auth/auth-guard";
 
 export default function RootLayout({
   children
@@ -34,7 +34,20 @@ export default function RootLayout({
         />
       </head>
       <body className={bricolageGrotesque.variable}>
-        {children}
+        <AuthProvider>
+          {children}
+          <Toaster
+            theme="dark"
+            position="top-right"
+            toastOptions={{
+              style: {
+                background: "#18181b",
+                border: "1px solid #27272a",
+                color: "#fafafa",
+              },
+            }}
+          />
+        </AuthProvider>
       </body>
     </html>
   );

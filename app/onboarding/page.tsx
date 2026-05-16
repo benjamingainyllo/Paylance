@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/components/auth/auth-provider";
+import { createClient } from "@/lib/supabase/client";
+import { toast } from "sonner";
 import { 
   Sparkles, 
   Rocket, 
@@ -34,39 +37,106 @@ const categories = [
 
 export default function OnboardingPage() {
   const router = useRouter();
+  const { user, profile, refreshProfile } = useAuth();
+  const supabase = createClient();
   const [step, setStep] = useState(1);
   const [handle, setHandle] = useState("");
   const [category, setCategory] = useState("");
   const [bio, setBio] = useState("");
   const [location, setLocation] = useState("");
   const [photo, setPhoto] = useState<string | null>(null);
-  const [userName, setUserName] = useState("Creator");
-  const [mounted, setMounted] = useState(false);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [saving, setSaving] = useState(false);
 
+  const userName = profile?.first_name || user?.user_metadata?.first_name || "Creator";
+
+  // Pre-fill from existing profile if returning to onboarding
   useEffect(() => {
-    setMounted(true);
-    const name = localStorage.getItem("userName");
-    if (name) setUserName(name);
-  }, []);
+    if (profile) {
+      if (profile.handle) setHandle(profile.handle);
+      if (profile.category) setCategory(profile.category);
+      if (profile.bio) setBio(profile.bio);
+      if (profile.location) setLocation(profile.location);
+      if (profile.avatar_url) setPhoto(profile.avatar_url);
+    }
+  }, [profile]);
 
-  if (!mounted) return null;
+  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setPhotoFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => setPhoto(reader.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
 
-  const handleComplete = () => {
-    localStorage.setItem("userHandle", handle);
-    localStorage.setItem("userCategory", category);
-    localStorage.setItem("userBio", bio);
-    localStorage.setItem("userLocation", location);
-    if (photo) localStorage.setItem("userPhoto", photo);
-    setStep(6); // Success screen is now step 6
+  const handleComplete = async () => {
+    if (!user) return;
+    setSaving(true);
+
+    try {
+      let avatarUrl = profile?.avatar_url || null;
+
+      // Upload avatar to Supabase Storage if a new file was selected
+      if (photoFile) {
+        const fileExt = photoFile.name.split(".").pop();
+        const filePath = `${user.id}/avatar.${fileExt}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("avatars")
+          .upload(filePath, photoFile, { upsert: true });
+
+        if (uploadError) {
+          console.error("Avatar upload error:", uploadError);
+          // Non-blocking — continue without avatar
+        } else {
+          const { data: publicUrlData } = supabase.storage
+            .from("avatars")
+            .getPublicUrl(filePath);
+          avatarUrl = publicUrlData.publicUrl;
+        }
+      }
+
+      // Save profile to Supabase
+      const { error } = await supabase
+        .from("profiles")
+        .upsert({
+          id: user.id,
+          handle: handle.toLowerCase(),
+          category,
+          bio,
+          location,
+          avatar_url: avatarUrl,
+        });
+
+      if (error) {
+        if (error.code === "23505") {
+          // Unique constraint violation — handle already taken
+          toast.error("That handle is already taken. Try a different one!");
+          setSaving(false);
+          setStep(1); // Go back to handle step
+          return;
+        }
+        toast.error("Failed to save profile: " + error.message);
+        setSaving(false);
+        return;
+      }
+
+      // Refresh the auth context profile
+      await refreshProfile();
+
+      toast.success("Profile created!");
+      setStep(6); // Show success screen
+    } catch (err) {
+      toast.error("Something went wrong. Please try again.");
+    }
+
+    setSaving(false);
   };
 
   const enterDashboard = () => {
     router.push(`/${handle}`);
-  };
-
-  const simulatePhotoUpload = () => {
-    // For prototype, we'll use a high-quality placeholder
-    setPhoto("https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400&auto=format&fit=crop&q=80");
   };
 
   return (
@@ -174,17 +244,23 @@ export default function OnboardingPage() {
                 {photo ? (
                   <div className="relative">
                     <img src={photo} alt="Preview" className="h-32 w-32 rounded-full border-4 border-blue-500/30 object-cover shadow-2xl" />
-                    <button onClick={() => setPhoto(null)} className="absolute -top-2 -right-2 h-8 w-8 rounded-full bg-red-500 flex items-center justify-center text-white"><X className="h-4 w-4" /></button>
+                    <button onClick={() => { setPhoto(null); setPhotoFile(null); }} className="absolute -top-2 -right-2 h-8 w-8 rounded-full bg-red-500 flex items-center justify-center text-white"><X className="h-4 w-4" /></button>
                   </div>
                 ) : (
                   <div className="flex h-32 w-32 items-center justify-center rounded-full bg-zinc-900 text-zinc-700">
                     <ImageIcon className="h-12 w-12" />
                   </div>
                 )}
-                <button onClick={simulatePhotoUpload} className="flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-3 text-sm font-bold transition-all hover:bg-blue-500">
+                <label className="flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-3 text-sm font-bold transition-all hover:bg-blue-500 cursor-pointer">
                   <Upload className="h-4 w-4" />
                   Upload Photo
-                </button>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePhotoSelect}
+                    className="hidden"
+                  />
+                </label>
               </div>
               <div className="mt-8 flex gap-3">
                 <button onClick={() => setStep(2)} className="flex h-14 flex-1 items-center justify-center rounded-2xl border border-zinc-800 font-bold">Back</button>
@@ -247,10 +323,17 @@ export default function OnboardingPage() {
                 <button onClick={() => setStep(4)} className="flex h-14 flex-1 items-center justify-center rounded-2xl border border-zinc-800 font-bold">Back</button>
                 <button 
                   onClick={handleComplete}
-                  className="flex h-14 flex-[2] items-center justify-center gap-2 rounded-2xl bg-blue-600 font-bold text-white shadow-lg shadow-blue-600/20 transition-all hover:bg-blue-500 active:scale-[0.98]"
+                  disabled={saving}
+                  className="flex h-14 flex-[2] items-center justify-center gap-2 rounded-2xl bg-blue-600 font-bold text-white shadow-lg shadow-blue-600/20 transition-all hover:bg-blue-500 active:scale-[0.98] disabled:opacity-50"
                 >
-                  {bio ? "Launch Profile" : "Skip & Launch"}
-                  <ArrowRight className="h-5 w-5" />
+                  {saving ? (
+                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  ) : (
+                    <>
+                      {bio ? "Launch Profile" : "Skip & Launch"}
+                      <ArrowRight className="h-5 w-5" />
+                    </>
+                  )}
                 </button>
               </div>
             </div>
@@ -262,7 +345,7 @@ export default function OnboardingPage() {
               <div className="relative mb-8">
                 <div className="absolute inset-0 scale-150 bg-blue-500/20 blur-3xl rounded-full"></div>
                 <div className="relative flex h-24 w-24 items-center justify-center rounded-full bg-blue-600 shadow-2xl shadow-blue-600/40">
-                  {photo ? <img src={photo} className="h-full w-full rounded-full object-cover" /> : <Rocket className="h-10 w-10 text-white" />}
+                  {photo ? <img src={photo} alt="Avatar" className="h-full w-full rounded-full object-cover" /> : <Rocket className="h-10 w-10 text-white" />}
                 </div>
               </div>
               <h1 className="text-4xl font-bold tracking-tight">You&apos;re all set!</h1>
@@ -271,7 +354,7 @@ export default function OnboardingPage() {
                 <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 text-left">
                   <div className="flex items-center gap-4">
                     <div className="h-12 w-12 rounded-full bg-zinc-800 flex items-center justify-center overflow-hidden">
-                      {photo ? <img src={photo} className="h-full w-full object-cover" /> : <UserCircle className="h-6 w-6 text-blue-500" />}
+                      {photo ? <img src={photo} alt="Avatar" className="h-full w-full object-cover" /> : <UserCircle className="h-6 w-6 text-blue-500" />}
                     </div>
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold text-white">paylance.me/{handle}</p>

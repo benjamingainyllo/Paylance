@@ -39,7 +39,7 @@ export function RevenueDonutChart() {
         </ResponsiveContainer>
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
           <p className="text-[10px] text-subtle">Total Revenue</p>
-          <p className="text-lg font-bold text-text">Rwf100</p>
+          <p className="text-lg font-bold text-text">₦100</p>
         </div>
       </div>
       

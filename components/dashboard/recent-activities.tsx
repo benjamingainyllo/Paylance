@@ -5,7 +5,7 @@ const activities = [
     id: 1,
     customer: "Anonymous",
     email: "-",
-    amount: "Rwf100",
+    amount: "₦100",
     product: "Buy Me a Coffee",
     date: "4 days ago",
     status: "Paid",
