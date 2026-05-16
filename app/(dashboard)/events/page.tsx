@@ -1,50 +1,33 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Plus, Calendar as CalendarIcon, MapPin, Users, MoreHorizontal, Search, Ticket, Zap, DollarSign, TrendingUp, ImagePlus, Globe, ToggleLeft, ToggleRight } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Plus, Calendar as CalendarIcon, MapPin, Users, MoreHorizontal, Search, Ticket, Zap, DollarSign, TrendingUp, ImagePlus, Globe, ToggleLeft, ToggleRight, Loader2 } from "lucide-react";
 import { TopFilters } from "@/components/dashboard/top-filters";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { PerformanceChart } from "@/components/dashboard/performance-chart";
 import { EventDetailView } from "@/components/dashboard/event-detail-view";
-
-const mockEvents = [
-  {
-    id: 1,
-    title: "Creator Meetup Lagos",
-    date: "May 24, 2026",
-    time: "10:00 AM",
-    location: "Victoria Island, Lagos",
-    attendees: 45,
-    status: "Upcoming",
-    price: 25,
-    revenue: 1125,
-    image: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&auto=format&fit=crop&q=60",
-    description: "Join fellow creators in Lagos for a day of networking, collaboration, and inspiration. We'll discuss content strategies and growth hacks for 2026."
-  },
-  {
-    id: 2,
-    title: "Digital Monetization Workshop",
-    date: "June 12, 2026",
-    time: "2:00 PM",
-    location: "Virtual (Zoom)",
-    attendees: 120,
-    status: "Upcoming",
-    price: 15,
-    revenue: 1800,
-    image: "https://images.unsplash.com/photo-1591115765373-520b7a21715b?w=800&auto=format&fit=crop&q=60",
-    description: "Learn how to turn your audience into a sustainable business. We'll cover everything from digital products to subscription models."
-  }
-];
+import { useAuth } from "@/components/auth/auth-provider";
+import { createClient } from "@/lib/supabase/client";
+import { toast } from "sonner";
+import { useCurrency } from "@/hooks/use-currency";
 
 export default function EventsPage() {
+  const { user } = useAuth();
+  const supabase = createClient();
+  const { formatPrice } = useCurrency();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [mounted, setMounted] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
-  const [detailTab, setDetailTab] = useState<"overview" | "analytics" | "activity">("overview");
-  const [events, setEvents] = useState(mockEvents);
+  const [events, setEvents] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isFree, setIsFree] = useState(false);
+  
+  // Form State
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
     date: "",
@@ -55,9 +38,36 @@ export default function EventsPage() {
     mapLink: ""
   });
 
+  useEffect(() => {
+    setMounted(true);
+    if (user) {
+      fetchEvents();
+    }
+  }, [user]);
+
+  const fetchEvents = async () => {
+    if (!user) return;
+    
+    const { data, error } = await supabase
+      .from("events")
+      .select("*")
+      .eq("creator_id", user.id)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching events:", error);
+      toast.error("Failed to load events");
+    } else {
+      setEvents(data || []);
+    }
+  };
+
+  if (!mounted) return null;
+
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setPhotoFile(file);
       const reader = new FileReader();
       reader.onloadend = () => setImagePreview(reader.result as string);
       reader.readAsDataURL(file);
@@ -68,32 +78,99 @@ export default function EventsPage() {
     e.preventDefault();
     const file = e.dataTransfer.files?.[0];
     if (file && file.type.startsWith("image/")) {
+      setPhotoFile(file);
       const reader = new FileReader();
       reader.onloadend = () => setImagePreview(reader.result as string);
       reader.readAsDataURL(file);
     }
   };
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) return null;
+  const handleCreateEvent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+    
+    setIsSaving(true);
+    
+    try {
+      let finalImageUrl = null;
+      
+      // Upload image if selected
+      if (photoFile) {
+        const fileExt = photoFile.name.split(".").pop();
+        const fileName = `${user.id}_${Date.now()}.${fileExt}`;
+        const filePath = `${user.id}/${fileName}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from("event_covers")
+          .upload(filePath, photoFile);
+          
+        if (uploadError) throw new Error("Failed to upload image: " + uploadError.message);
+        
+        const { data: publicUrlData } = supabase.storage
+          .from("event_covers")
+          .getPublicUrl(filePath);
+          
+        finalImageUrl = publicUrlData.publicUrl;
+      }
+      
+      // Insert Event into Database
+      const eventPrice = isFree ? 0 : parseFloat(formData.price || "0");
+      
+      const { data, error } = await supabase
+        .from("events")
+        .insert({
+          creator_id: user.id,
+          title: formData.title,
+          description: formData.description,
+          date: formData.date,
+          time: formData.time,
+          location: formData.location,
+          map_link: formData.mapLink,
+          price_naira: eventPrice,
+          is_free: isFree,
+          cover_image_url: finalImageUrl,
+          status: "Upcoming",
+          attendees_count: 0,
+          revenue: 0
+        })
+        .select()
+        .single();
+        
+      if (error) throw new Error(error.message);
+      
+      // Update local state
+      setEvents([data, ...events]);
+      
+      // Reset form
+      setShowCreateForm(false);
+      setIsFree(false);
+      setImagePreview(null);
+      setPhotoFile(null);
+      setFormData({ title: "", date: "", time: "", location: "", description: "", price: "0", mapLink: "" });
+      toast.success("Event created successfully!");
+      
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || "Failed to create event");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const filteredEvents = events.filter(event => 
-    event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    event.location.toLowerCase().includes(searchQuery.toLowerCase())
+    event.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    event.location?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const totalAttendees = events.reduce((sum, event) => sum + event.attendees, 0);
-  const totalRevenue = events.reduce((sum, event) => sum + (event.revenue || 0), 0);
-  const upcomingEvents = events.filter(e => e.status === "Upcoming").length;
+  const totalAttendees = events.reduce((sum, event) => sum + (event.attendees_count || 0), 0);
+  const totalRevenue = events.reduce((sum, event) => sum + (Number(event.revenue) || 0), 0);
+  const upcomingEventsCount = events.filter(e => e.status === "Upcoming").length;
 
   const eventMetrics = [
     {
       title: "Event Revenue",
-      value: `₦${totalRevenue.toLocaleString()}`,
-      change: "vs last 30 days +100%",
+      value: formatPrice(totalRevenue),
+      change: events.length > 0 ? "Total lifetime" : "No revenue yet",
       icon: DollarSign,
       iconColor: "#22C55E",
       iconBgColor: "rgba(34, 197, 94, 0.1)"
@@ -101,14 +178,14 @@ export default function EventsPage() {
     {
       title: "Total RSVPs",
       value: totalAttendees.toString(),
-      change: "vs last 30 days +100%",
+      change: events.length > 0 ? "All events" : "No RSVPs yet",
       icon: Users,
       iconColor: "#3B82F6",
       iconBgColor: "rgba(59, 130, 246, 0.1)"
     },
     {
       title: "Avg. Ticket Price",
-      value: events.length > 0 ? `₦${Math.round(totalRevenue / totalAttendees)}` : "₦0",
+      value: totalAttendees > 0 ? formatPrice(Math.round(totalRevenue / totalAttendees)) : formatPrice(0),
       change: "Across all events",
       icon: Ticket,
       iconColor: "#A855F7",
@@ -116,38 +193,13 @@ export default function EventsPage() {
     },
     {
       title: "Upcoming",
-      value: upcomingEvents.toString(),
+      value: upcomingEventsCount.toString(),
       change: "Active registrations",
       icon: Zap,
       iconColor: "#F97316",
       iconBgColor: "rgba(249, 115, 22, 0.1)"
     }
   ];
-
-  const handleCreateEvent = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    const newEvent = {
-      id: events.length + 1,
-      title: formData.title,
-      date: new Date(formData.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
-      time: formData.time,
-      location: formData.location,
-      mapLink: formData.mapLink,
-      attendees: 0,
-      status: "Upcoming",
-      price: isFree ? 0 : parseFloat(formData.price),
-      revenue: 0,
-      image: imagePreview || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&auto=format&fit=crop&q=60",
-      description: formData.description
-    };
-
-    setEvents([newEvent, ...events]);
-    setShowCreateForm(false);
-    setIsFree(false);
-    setImagePreview(null);
-    setFormData({ title: "", date: "", time: "", location: "", description: "", price: "0", mapLink: "" });
-  };
 
   return (
     <section className="space-y-6">
@@ -191,7 +243,7 @@ export default function EventsPage() {
             </div>
             <div className="flex items-center gap-2 rounded-lg bg-muted/50 px-3 py-1.5 text-xs font-medium text-text">
               <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />
-              +24% growth
+              Tracking
             </div>
           </div>
           <div className="h-[300px]">
@@ -204,15 +256,15 @@ export default function EventsPage() {
           <div className="mt-6 space-y-6">
             <div className="flex items-center justify-between">
                <span className="text-xs text-subtle">RSVP Rate</span>
-               <span className="text-xs font-bold text-text">78%</span>
+               <span className="text-xs font-bold text-text">0%</span>
             </div>
             <div className="flex items-center justify-between">
                <span className="text-xs text-subtle">Average Attendance</span>
-               <span className="text-xs font-bold text-text">82 creators</span>
+               <span className="text-xs font-bold text-text">0 creators</span>
             </div>
             <div className="flex items-center justify-between">
                <span className="text-xs text-subtle">Top Channel</span>
-               <span className="text-xs font-bold text-text">Instagram (45%)</span>
+               <span className="text-xs font-bold text-text">N/A</span>
             </div>
             <div className="mt-8 pt-8 border-t border-border">
                <p className="text-xs font-medium text-text mb-4">Event Types</p>
@@ -222,21 +274,21 @@ export default function EventsPage() {
                        <div className="h-2 w-2 rounded-full bg-blue-500"></div>
                        <span className="text-[11px] text-subtle">Workshops</span>
                     </div>
-                    <span className="text-[11px] font-bold text-text">60%</span>
+                    <span className="text-[11px] font-bold text-text">0%</span>
                  </div>
                  <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                        <div className="h-2 w-2 rounded-full bg-purple-500"></div>
                        <span className="text-[11px] text-subtle">Meetups</span>
                     </div>
-                    <span className="text-[11px] font-bold text-text">30%</span>
+                    <span className="text-[11px] font-bold text-text">0%</span>
                  </div>
                  <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                        <div className="h-2 w-2 rounded-full bg-emerald-500"></div>
                        <span className="text-[11px] text-subtle">Virtual</span>
                     </div>
-                    <span className="text-[11px] font-bold text-text">10%</span>
+                    <span className="text-[11px] font-bold text-text">0%</span>
                  </div>
                </div>
             </div>
@@ -245,23 +297,29 @@ export default function EventsPage() {
       </div>
 
       <div className="grid gap-6 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
-        {filteredEvents.map((event) => (
+        {events.length > 0 ? filteredEvents.map((event) => (
           <div 
             key={event.id} 
             onClick={() => setSelectedEvent(event)}
             className="group cursor-pointer overflow-hidden rounded-2xl border border-border bg-surface transition-all hover:border-zinc-700 hover:shadow-lg hover:shadow-black/20"
           >
-            <div className="relative h-40 w-full overflow-hidden">
-              <img 
-                src={event.image} 
-                alt={event.title} 
-                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-              />
+            <div className="relative h-40 w-full overflow-hidden bg-muted">
+              {event.cover_image_url ? (
+                <img 
+                  src={event.cover_image_url} 
+                  alt={event.title} 
+                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                />
+              ) : (
+                <div className="h-full w-full flex items-center justify-center text-subtle">
+                  <CalendarIcon className="h-8 w-8 opacity-20" />
+                </div>
+              )}
               <div className="absolute top-3 right-3 rounded-full bg-black/50 px-3 py-1 text-[10px] font-medium text-white backdrop-blur-md">
                 {event.status}
               </div>
-              <div className={`absolute bottom-3 left-3 rounded-full px-3 py-1 text-[10px] font-bold text-white shadow-lg ${event.price === 0 ? 'bg-emerald-600' : 'bg-blue-600'}`}>
-                {event.price === 0 ? 'FREE' : `₦${event.price.toLocaleString()} / ticket`}
+              <div className={`absolute bottom-3 left-3 rounded-full px-3 py-1 text-[10px] font-bold text-white shadow-lg ${event.is_free ? 'bg-emerald-600' : 'bg-blue-600'}`}>
+                {event.is_free ? 'FREE' : `${formatPrice(Number(event.price_naira))} / ticket`}
               </div>
             </div>
             
@@ -271,15 +329,15 @@ export default function EventsPage() {
               <div className="mt-4 space-y-2">
                 <div className="flex items-center gap-2 text-xs text-subtle">
                   <CalendarIcon className="h-3.5 w-3.5" />
-                  {event.date} • {event.time}
+                  {event.date ? new Date(event.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'TBD'} • {event.time || 'TBA'}
                 </div>
                 <div className="flex items-center gap-2 text-xs text-subtle">
                   <MapPin className="h-3.5 w-3.5" />
-                  {event.location}
+                  <span className="truncate">{event.location || 'Online'}</span>
                 </div>
                 <div className="flex items-center gap-2 text-xs text-subtle">
                   <Users className="h-3.5 w-3.5" />
-                  {event.attendees} creators attending
+                  {event.attendees_count || 0} attending
                 </div>
               </div>
 
@@ -290,7 +348,7 @@ export default function EventsPage() {
                 <div className="flex items-center gap-2">
                    <div className="text-right">
                       <p className="text-[10px] text-subtle uppercase">Revenue</p>
-                      <p className="text-xs font-bold text-emerald-500">₦{event.revenue?.toLocaleString()}</p>
+                      <p className="text-xs font-bold text-emerald-500">{formatPrice(Number(event.revenue || 0))}</p>
                    </div>
                    <button onClick={(e) => { e.stopPropagation(); }} className="rounded-lg p-2 text-subtle hover:bg-muted hover:text-text">
                      <MoreHorizontal className="h-5 w-5" />
@@ -299,7 +357,7 @@ export default function EventsPage() {
               </div>
             </div>
           </div>
-        ))}
+        )) : null}
 
         {/* Create Placeholder */}
         <button 
@@ -348,7 +406,7 @@ export default function EventsPage() {
                   onDragOver={(e) => e.preventDefault()}
                   className="relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-zinc-700 bg-zinc-900/30 transition-colors hover:border-blue-500/40 hover:bg-zinc-900/60 cursor-pointer overflow-hidden"
                   style={{ minHeight: imagePreview ? '160px' : '120px' }}
-                  onClick={() => document.getElementById('event-image-input')?.click()}
+                  onClick={() => fileInputRef.current?.click()}
                 >
                   {imagePreview ? (
                     <>
@@ -365,7 +423,7 @@ export default function EventsPage() {
                     </>
                   )}
                   <input
-                    id="event-image-input"
+                    ref={fileInputRef}
                     type="file"
                     accept="image/*"
                     onChange={handleImageUpload}
@@ -492,6 +550,7 @@ export default function EventsPage() {
               <div className="flex gap-3 pt-4">
                 <button 
                   type="button"
+                  disabled={isSaving}
                   onClick={() => setShowCreateForm(false)}
                   className="flex-1 rounded-xl border border-zinc-800 bg-transparent py-3.5 text-sm font-semibold text-zinc-400 transition-colors hover:bg-zinc-800/50 hover:text-white"
                 >
@@ -499,9 +558,10 @@ export default function EventsPage() {
                 </button>
                 <button 
                   type="submit"
-                  className="flex-1 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 py-3.5 text-sm font-bold text-white shadow-lg shadow-blue-600/20 transition-all hover:shadow-blue-600/40 hover:scale-[1.02] active:scale-[0.98]"
+                  disabled={isSaving}
+                  className="flex-1 flex items-center justify-center rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 py-3.5 text-sm font-bold text-white shadow-lg shadow-blue-600/20 transition-all hover:shadow-blue-600/40 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 disabled:hover:scale-100"
                 >
-                  🚀 Launch Event
+                  {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : "🚀 Launch Event"}
                 </button>
               </div>
             </form>
