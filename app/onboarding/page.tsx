@@ -80,59 +80,76 @@ export default function OnboardingPage() {
 
       // Upload avatar to Supabase Storage if a new file was selected
       if (photoFile) {
-        const fileExt = photoFile.name.split(".").pop();
-        const filePath = `${user.id}/avatar.${fileExt}`;
+        try {
+          const fileExt = photoFile.name.split(".").pop();
+          const filePath = `${user.id}/avatar.${fileExt}`;
 
-        const { error: uploadError } = await supabase.storage
-          .from("avatars")
-          .upload(filePath, photoFile, { upsert: true });
-
-        if (uploadError) {
-          console.error("Avatar upload error:", uploadError);
-          // Non-blocking — continue without avatar
-        } else {
-          const { data: publicUrlData } = supabase.storage
+          const { error: uploadError } = await supabase.storage
             .from("avatars")
-            .getPublicUrl(filePath);
-          avatarUrl = publicUrlData.publicUrl;
+            .upload(filePath, photoFile, { upsert: true });
+
+          if (!uploadError) {
+            const { data: publicUrlData } = supabase.storage
+              .from("avatars")
+              .getPublicUrl(filePath);
+            avatarUrl = publicUrlData.publicUrl;
+          }
+        } catch (e) {
+          // Avatar upload failed — continue without it
+          console.error("Avatar upload failed:", e);
         }
       }
 
-      // Save profile to Supabase
+      // Update profile in Supabase (row already exists from auth trigger)
+      const profileData: Record<string, any> = {
+        handle: handle.toLowerCase() || null,
+        category: category || null,
+        bio: bio || null,
+        location: location || null,
+      };
+      if (avatarUrl) profileData.avatar_url = avatarUrl;
+
       const { error } = await supabase
         .from("profiles")
-        .upsert({
-          id: user.id,
-          handle: handle.toLowerCase(),
-          category,
-          bio,
-          location,
-          avatar_url: avatarUrl,
-        });
+        .update(profileData)
+        .eq("id", user.id);
 
       if (error) {
+        console.error("Profile update error:", error);
         if (error.code === "23505") {
-          // Unique constraint violation — handle already taken
           toast.error("That handle is already taken. Try a different one!");
+          setStep(1);
           setSaving(false);
-          setStep(1); // Go back to handle step
           return;
         }
-        toast.error("Failed to save profile: " + error.message);
-        setSaving(false);
-        return;
+        // If update fails, try insert as fallback
+        const { error: insertError } = await supabase
+          .from("profiles")
+          .insert({ id: user.id, ...profileData });
+
+        if (insertError) {
+          console.error("Profile insert error:", insertError);
+          toast.error("Failed to save profile. Please try again.");
+          setSaving(false);
+          return;
+        }
       }
 
       // Refresh the auth context profile
-      await refreshProfile();
+      try {
+        await refreshProfile();
+      } catch (e) {
+        // Non-blocking
+      }
 
       toast.success("Profile created!");
       setStep(6); // Show success screen
     } catch (err) {
+      console.error("Onboarding error:", err);
       toast.error("Something went wrong. Please try again.");
+    } finally {
+      setSaving(false);
     }
-
-    setSaving(false);
   };
 
   const enterDashboard = () => {
