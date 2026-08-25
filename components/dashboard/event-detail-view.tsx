@@ -74,8 +74,14 @@ export function EventDetailView({ event, onBack }: EventDetailViewProps) {
   return (
     <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md overflow-y-auto">
       {/* Hero Banner */}
-      <div className="relative h-56 md:h-72 w-full overflow-hidden">
-        <img src={event.image} alt={event.title} className="h-full w-full object-cover" />
+      <div className="relative h-56 md:h-72 w-full overflow-hidden bg-zinc-900">
+        {event.cover_image_url ? (
+          <img src={event.cover_image_url} alt={event.title} className="h-full w-full object-cover" />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center text-zinc-700">
+            <CalendarLucide className="h-12 w-12 opacity-20" />
+          </div>
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
 
         <div className="absolute top-4 left-4 flex items-center gap-3">
@@ -96,9 +102,12 @@ export function EventDetailView({ event, onBack }: EventDetailViewProps) {
         <div className="absolute bottom-6 left-6 right-6">
           <h1 className="text-2xl md:text-3xl font-bold text-white">{event.title}</h1>
           <div className="mt-2 flex flex-wrap items-center gap-4 text-sm text-white/70">
-            <span className="flex items-center gap-1.5"><CalendarLucide className="h-4 w-4" />{event.date} • {event.time}</span>
-            <span className="flex items-center gap-1.5"><MapPin className="h-4 w-4" />{event.location}</span>
-            <span className="flex items-center gap-1.5"><Users className="h-4 w-4" />{event.attendees} attending</span>
+            <span className="flex items-center gap-1.5">
+              <CalendarLucide className="h-4 w-4" />
+              {event.date ? new Date(event.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "Date TBD"} • {event.time || "TBA"}
+            </span>
+            <span className="flex items-center gap-1.5"><MapPin className="h-4 w-4" />{event.location || "Online"}</span>
+            <span className="flex items-center gap-1.5"><Users className="h-4 w-4" />{event.attendees_count || 0} attending</span>
           </div>
         </div>
       </div>
@@ -139,9 +148,9 @@ export function EventDetailView({ event, onBack }: EventDetailViewProps) {
             {/* Key Metrics Row */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
-                { label: "Revenue", value: `₦${event.revenue?.toLocaleString()}`, icon: DollarSign, accent: "text-emerald-500", bg: "bg-emerald-500/10" },
-                { label: "Attendees", value: event.attendees.toString(), icon: Users, accent: "text-blue-500", bg: "bg-blue-500/10" },
-                { label: "Ticket Price", value: event.price === 0 ? "FREE" : `₦${event.price}`, icon: Ticket, accent: "text-purple-500", bg: "bg-purple-500/10" },
+                { label: "Revenue", value: `₦${Number(event.revenue || 0).toLocaleString()}`, icon: DollarSign, accent: "text-emerald-500", bg: "bg-emerald-500/10" },
+                { label: "Attendees", value: (event.attendees_count || 0).toString(), icon: Users, accent: "text-blue-500", bg: "bg-blue-500/10" },
+                { label: "Ticket Price", value: event.is_free ? "FREE" : `₦${Number(event.price_naira || 0).toLocaleString()}`, icon: Ticket, accent: "text-purple-500", bg: "bg-purple-500/10" },
                 { label: "Page Views", value: "234", icon: Eye, accent: "text-orange-500", bg: "bg-orange-500/10" },
               ].map((m) => (
                 <div key={m.label} className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-5">
@@ -165,14 +174,16 @@ export function EventDetailView({ event, onBack }: EventDetailViewProps) {
                 <div className="mt-6 grid grid-cols-2 gap-4">
                   <div className="rounded-xl bg-zinc-800/40 p-4 space-y-1">
                     <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Date & Time</p>
-                    <p className="text-sm font-medium text-white">{event.date}</p>
-                    <p className="text-xs text-zinc-400">{event.time}</p>
+                    <p className="text-sm font-medium text-white">
+                      {event.date ? new Date(event.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "Date TBD"}
+                    </p>
+                    <p className="text-xs text-zinc-400">{event.time || "TBA"}</p>
                   </div>
                   <div className="rounded-xl bg-zinc-800/40 p-4 space-y-1">
                     <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Location</p>
-                    <p className="text-sm font-medium text-white">{event.location}</p>
-                    {event.mapLink && (
-                      <a href={event.mapLink} target="_blank" rel="noopener" className="inline-flex items-center gap-1 text-xs text-blue-400 hover:underline mt-1">
+                    <p className="text-sm font-medium text-white">{event.location || "Online"}</p>
+                    {event.map_link && (
+                      <a href={event.map_link} target="_blank" rel="noopener" className="inline-flex items-center gap-1 text-xs text-blue-400 hover:underline mt-1">
                         Open Map <ExternalLink className="h-3 w-3" />
                       </a>
                     )}

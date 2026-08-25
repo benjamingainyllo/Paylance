@@ -43,6 +43,18 @@ interface Offer {
   offer_type: string;
 }
 
+interface StorefrontEvent {
+  id: string;
+  title: string;
+  date: string | null;
+  time: string | null;
+  location: string | null;
+  cover_image_url: string | null;
+  price_naira: number;
+  is_free: boolean;
+  status: string | null;
+}
+
 export default function StorefrontPage() {
   const params = useParams();
   const username = params?.username as string;
@@ -51,6 +63,7 @@ export default function StorefrontPage() {
 
   const [creator, setCreator] = useState<CreatorProfile | null>(null);
   const [offers, setOffers] = useState<Offer[]>([]);
+  const [events, setEvents] = useState<StorefrontEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
@@ -92,6 +105,18 @@ export default function StorefrontPage() {
 
       if (offersData) {
         setOffers(offersData as Offer[]);
+      }
+
+      // Fetch upcoming events for this creator
+      const { data: eventsData } = await supabase
+        .from("events")
+        .select("*")
+        .eq("creator_id", profileData.id)
+        .neq("status", "Cancelled")
+        .order("date", { ascending: true });
+
+      if (eventsData) {
+        setEvents(eventsData as StorefrontEvent[]);
       }
 
       setLoading(false);
@@ -303,13 +328,55 @@ export default function StorefrontPage() {
 
           {/* Events Tab */}
           {activeTab === "events" && (
-            <div className="pt-12 text-center">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-zinc-900/50 border border-zinc-800 text-zinc-700">
-                <Calendar className="h-8 w-8" />
-              </div>
-              <h3 className="text-sm font-semibold text-zinc-300">No upcoming events</h3>
-              <p className="mt-1 text-xs text-zinc-600">Check back later for events from this creator.</p>
-            </div>
+            <>
+              {events.length > 0 ? (
+                <div className="space-y-4 pt-4">
+                  {events.map((event) => (
+                    <a
+                      key={event.id}
+                      href={`/event/${event.id}`}
+                      className="block rounded-2xl border border-zinc-800 bg-zinc-900/50 p-4 backdrop-blur-sm transition-all hover:border-zinc-700 hover:bg-zinc-800/50 active:scale-[0.98]"
+                    >
+                      <div className="flex items-center gap-4">
+                        {event.cover_image_url ? (
+                          <img
+                            src={event.cover_image_url}
+                            alt={event.title}
+                            className="h-16 w-16 rounded-xl object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600/20 to-indigo-600/20 border border-zinc-800">
+                            <Calendar className="h-6 w-6 text-blue-400" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-white truncate">{event.title}</h3>
+                          <p className="text-xs text-zinc-500 mt-1 line-clamp-1">
+                            {event.date ? new Date(event.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "Date TBD"}
+                            {event.time ? ` • ${event.time}` : ""}
+                            {event.location ? ` • ${event.location}` : ""}
+                          </p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="text-sm font-bold text-emerald-400">
+                            {event.is_free ? "FREE" : formatPrice(event.price_naira)}
+                          </p>
+                          <ChevronRight className="h-4 w-4 text-zinc-600 ml-auto mt-1" />
+                        </div>
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              ) : (
+                <div className="pt-12 text-center">
+                  <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-zinc-900/50 border border-zinc-800 text-zinc-700">
+                    <Calendar className="h-8 w-8" />
+                  </div>
+                  <h3 className="text-sm font-semibold text-zinc-300">No upcoming events</h3>
+                  <p className="mt-1 text-xs text-zinc-600">Check back later for events from this creator.</p>
+                </div>
+              )}
+            </>
           )}
 
           {/* Links Tab */}

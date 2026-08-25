@@ -50,8 +50,14 @@ The goal is to go beyond a simple storefront and help creators run revenue, audi
   - Currency standardized to Nigerian Naira (₦)
 - Utilities:
   - Supabase client bootstrap
-  - Paystack initialize transaction helper
+  - Paystack initialize/verify transaction helpers
   - 9% platform fee utility
+- Events, end-to-end:
+  - Creator: create event (cover image, date/time, location, free or paid), dashboard list + detail view backed by real Supabase data
+  - Public: storefront `Events` tab and standalone `/event/[id]` page for buyers
+  - Checkout: real Paystack redirect flow for paid tickets, instant RSVP for free events, `/checkout/success` return page that verifies payment status
+  - Backend: Paystack webhook (`/api/paystack/webhook`) confirms payment and atomically updates event attendee/revenue counters; shared checkout path also powers Offer purchases
+  - Requires running `checkout-setup.sql` in Supabase (after `events-setup.sql`) and setting `PAYSTACK_SECRET_KEY` + `SUPABASE_SERVICE_ROLE_KEY` in the environment
 
 ## Product Roadmap (Suggested)
 
