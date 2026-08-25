@@ -55,12 +55,13 @@ export async function middleware(request: NextRequest) {
 
   if (isProtected && !user) {
     const url = request.nextUrl.clone();
-    url.pathname = "/";
+    url.pathname = "/login";
     return NextResponse.redirect(url);
   }
 
-  // If user is authenticated and on the login page, redirect to dashboard
-  if (request.nextUrl.pathname === "/" && user) {
+  // If user is authenticated and on the login page, redirect to dashboard.
+  // `/` is the public marketing page and stays reachable when signed in.
+  if (request.nextUrl.pathname === "/login" && user) {
     const url = request.nextUrl.clone();
     url.pathname = "/overview";
     return NextResponse.redirect(url);

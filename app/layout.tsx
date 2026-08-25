@@ -10,9 +10,34 @@ const bricolageGrotesque = Bricolage_Grotesque({
   variable: "--font-bricolage-grotesque"
 });
 
+const SITE_DESCRIPTION =
+  "Paylance is the creator business OS for Africa. Sell digital products, host paid events, grow your audience and get paid in Naira — all from one dashboard.";
+
 export const metadata: Metadata = {
-  title: "Paylance",
-  description: "Monetization platform for creators."
+  title: {
+    default: "Paylance — Turn your audience into a real business",
+    template: "%s | Paylance"
+  },
+  description: SITE_DESCRIPTION,
+  keywords: [
+    "creator economy",
+    "sell digital products",
+    "event ticketing",
+    "Paystack",
+    "Nigeria",
+    "creator storefront"
+  ],
+  openGraph: {
+    title: "Paylance — Turn your audience into a real business",
+    description: SITE_DESCRIPTION,
+    siteName: "Paylance",
+    type: "website"
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Paylance — Turn your audience into a real business",
+    description: SITE_DESCRIPTION
+  }
 };
 
 export default function RootLayout({

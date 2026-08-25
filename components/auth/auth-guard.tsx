@@ -22,7 +22,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   // Redirect to login if timed out or no user after loading
   useEffect(() => {
     if (timedOut || (!loading && !user)) {
-      router.replace("/");
+      router.replace("/login");
     }
   }, [timedOut, loading, user, router]);
 
