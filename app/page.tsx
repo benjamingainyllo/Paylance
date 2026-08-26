@@ -8,129 +8,147 @@ import {
   Check,
   X,
   Menu,
-  Link2,
-  Users,
-  Landmark,
   Store,
+  Ticket,
+  Video,
+  Users,
   BarChart3,
-  Sparkles,
+  Landmark,
+  Link2,
   ShieldCheck,
   MessageCircle,
 } from "lucide-react";
 import { useAuth } from "@/components/auth/auth-provider";
 
 /**
- * The events wedge, not the OS pitch.
- *
- * "Sell your digital products online" is a sentence competitors already own.
- * "Collect money for your event without the screenshot wahala" is unowned, so
- * the page leads with that and introduces the wider product further down.
+ * Paylance is a creator OS: offers, events, audience, revenue, payouts on one
+ * shared rail. Events are the most vivid thing you can sell with it, not the
+ * definition of the product — so they get a prominent slot here, not the
+ * headline.
  */
 
+const SELLABLE = [
+  {
+    icon: Store,
+    title: "Digital products",
+    body: "Ebooks, presets, templates, courses. Upload once, sell it as many times as you like.",
+  },
+  {
+    icon: Ticket,
+    title: "Events & tickets",
+    body: "Workshops, meetups, classes, parties. Sell tickets or take free RSVPs, and see exactly who's coming.",
+  },
+  {
+    icon: Video,
+    title: "Sessions & services",
+    body: "Coaching calls, consulting, custom work. Set your price and let people book and pay in one step.",
+  },
+];
+
+const DASHBOARD = [
+  {
+    icon: Users,
+    title: "Audience",
+    body: "Everyone who buys becomes a contact you own — not a follower on a platform that can change the rules.",
+  },
+  {
+    icon: BarChart3,
+    title: "Revenue",
+    body: "One ledger across everything you sell. Gross, fees, and exactly what landed in your account.",
+  },
+  {
+    icon: Landmark,
+    title: "Payouts",
+    body: "Connect your bank once. Every settlement is listed, and nothing is held in between.",
+  },
+  {
+    icon: Link2,
+    title: "Storefront",
+    body: "One public page with everything you're selling. Put it in your bio and stop rewriting link lists.",
+  },
+];
+
 const BEFORE = [
+  "Payment links scattered across four different tools",
   "“Send me your account details”",
-  "17 transfer screenshots in the group chat",
-  "Ticking names off a list by hand",
-  "Chasing the four people who never paid",
-  "No idea what you actually made",
+  "Screenshots to match against a list by hand",
+  "Chasing the people who never paid",
+  "No single place that says what you actually earned",
 ];
 
 const AFTER = [
-  "One link you share anywhere",
-  "Guests pay by card or bank transfer",
-  "A live list of who's paid",
-  "Money straight into your bank account",
-  "Exact totals, the moment they land",
+  "One link for everything you sell",
+  "Buyers pay by card or bank transfer",
+  "Every sale recorded the moment it happens",
+  "Money settled straight to your bank",
+  "One dashboard with the real numbers",
 ];
 
 const STEPS = [
   {
     number: "01",
-    title: "Set up your event",
-    body: "Name it, pick the date and place, set a price — or make it free. Takes about two minutes.",
+    title: "Create what you're selling",
+    body: "A product, a ticketed event, a session. Set a price, or make it free.",
   },
   {
     number: "02",
-    title: "Share one link",
-    body: "WhatsApp status, IG bio, the group chat. Anywhere you'd normally paste your account number.",
+    title: "Share your link",
+    body: "Your storefront, or a direct link to one thing. Works in a bio, a chat, a story — anywhere.",
   },
   {
     number: "03",
     title: "Get paid",
-    body: "Guests pay however they like. Your money settles directly to your bank — it never sits with us.",
+    body: "Buyers pay however they like. Your money settles directly to your bank — it never sits with us.",
   },
 ];
 
-const GUEST_TRUST = [
+const BUYER_TRUST = [
   {
     icon: X,
     title: "No account, no app",
-    body: "Your guests tap the link and pay. No sign-up, no download, no password to forget.",
+    body: "Buyers tap the link and pay. No sign-up, no download, no password between them and checkout.",
   },
   {
     icon: Users,
-    title: "They see who's coming",
-    body: "Real names of people who already paid. The strongest signal a link is legit, not a scam.",
+    title: "They see who's already in",
+    body: "Real names of people who've bought or RSVP'd — the clearest signal that a link is genuine.",
   },
   {
     icon: ShieldCheck,
-    title: "Your face on the page",
-    body: "Your name, photo and profile are front and centre. Guests are trusting you, not a logo.",
+    title: "Your name on the page",
+    body: "Your photo and profile are front and centre. People are trusting you, not an unfamiliar logo.",
   },
   {
     icon: MessageCircle,
-    title: "Looks right in WhatsApp",
-    body: "Cover art, title, date and price show up in the preview before the page even loads.",
-  },
-];
-
-const OS_FEATURES = [
-  {
-    icon: Store,
-    title: "Sell more than tickets",
-    body: "Ebooks, presets, courses, consulting sessions — same link, same checkout, same bank account.",
-  },
-  {
-    icon: Users,
-    title: "Keep your buyers",
-    body: "Everyone who pays becomes a contact you own. Not a follower on someone else's platform.",
-  },
-  {
-    icon: BarChart3,
-    title: "See what actually earns",
-    body: "Every ticket and every sale in one ledger. Gross, fees, and exactly what hit your account.",
-  },
-  {
-    icon: Landmark,
-    title: "Money you can trace",
-    body: "Connect your bank once. Every payout is listed, with nothing held in between.",
+    title: "Looks right when shared",
+    body: "Cover art, title, date and price appear in the link preview before the page even loads.",
   },
 ];
 
 const FAQS = [
   {
-    q: "Do my guests need to create an account?",
-    a: "No. They tap your link, enter their name and email, and pay. That's the whole thing — no sign-up, no app.",
+    q: "What can I actually sell?",
+    a: "Digital products, event tickets, and services or sessions — all from the same account, the same link and the same checkout.",
+  },
+  {
+    q: "Do my buyers need an account?",
+    a: "No. They tap your link, enter their name and email, and pay. No sign-up, no app.",
   },
   {
     q: "How do I get my money?",
-    a: "It goes straight to your own bank account. Payments are split at the moment someone pays, so your share settles directly to you — Paylance never holds it.",
+    a: "Straight to your own bank account. Payments are split at the moment someone pays, so your share settles directly to you — Paylance never holds it.",
   },
   {
-    q: "How can guests pay?",
-    a: "Card or bank transfer, whichever they prefer. Everything runs on Paystack.",
-  },
-  {
-    q: "Can I run a free event?",
-    a: "Yes. Free events work the same way — you just get RSVPs instead of payments, and you still see exactly who's coming.",
+    q: "Can I run something for free?",
+    a: "Yes. Free events and free products work the same way — you just collect sign-ups instead of payments, and you still see exactly who came through.",
   },
   {
     q: "What does it cost?",
     a: "Nothing to start and no monthly fee. We take a small percentage when you actually get paid, so if you don't sell anything, you don't pay anything.",
   },
   {
-    q: "Is this only for parties?",
-    a: "That's where most people start, but the same link works for workshops, classes, listening parties, game nights — anything where money changes hands.",
+    q: "Do I need a website?",
+    a: "No. Your storefront is the website. You get one shareable link with everything you sell on it.",
   },
 ];
 
@@ -142,8 +160,15 @@ export default function LandingPage() {
   useEffect(() => setMounted(true), []);
   const isSignedIn = mounted && !!user;
 
-  const primaryHref = isSignedIn ? "/events" : "/login";
-  const primaryLabel = isSignedIn ? "Go to dashboard" : "Create your event";
+  const primaryHref = isSignedIn ? "/overview" : "/login";
+  const primaryLabel = isSignedIn ? "Go to dashboard" : "Start selling free";
+
+  const NAV = [
+    ["#sell", "What you can sell"],
+    ["#how-it-works", "How it works"],
+    ["#dashboard", "Your dashboard"],
+    ["#faq", "FAQ"],
+  ] as const;
 
   return (
     <main className="theme-light min-h-screen overflow-x-hidden bg-background text-text">
@@ -158,18 +183,11 @@ export default function LandingPage() {
           </Link>
 
           <div className="hidden items-center gap-8 md:flex">
-            <a href="#how-it-works" className="text-sm text-subtle transition-colors hover:text-text">
-              How it works
-            </a>
-            <a href="#guests" className="text-sm text-subtle transition-colors hover:text-text">
-              For your guests
-            </a>
-            <a href="#more" className="text-sm text-subtle transition-colors hover:text-text">
-              Beyond tickets
-            </a>
-            <a href="#faq" className="text-sm text-subtle transition-colors hover:text-text">
-              FAQ
-            </a>
+            {NAV.map(([href, label]) => (
+              <a key={href} href={href} className="text-sm text-subtle transition-colors hover:text-text">
+                {label}
+              </a>
+            ))}
           </div>
 
           <div className="hidden items-center gap-3 md:flex">
@@ -198,12 +216,7 @@ export default function LandingPage() {
         {menuOpen && (
           <div className="border-t border-border bg-background px-5 py-4 md:hidden">
             <div className="flex flex-col gap-4">
-              {[
-                ["#how-it-works", "How it works"],
-                ["#guests", "For your guests"],
-                ["#more", "Beyond tickets"],
-                ["#faq", "FAQ"],
-              ].map(([href, label]) => (
+              {NAV.map(([href, label]) => (
                 <a key={href} href={href} onClick={() => setMenuOpen(false)} className="text-sm text-subtle">
                   {label}
                 </a>
@@ -229,22 +242,22 @@ export default function LandingPage() {
 
         <div className="relative mx-auto max-w-3xl text-center">
           <div className="mx-auto mb-6 flex w-fit items-center gap-2 rounded-full border border-border bg-surface/70 px-4 py-1.5 backdrop-blur-sm">
-            <span className="text-xs font-medium text-subtle">Built for Nigeria 🇳🇬</span>
+            <span className="text-xs font-medium text-subtle">The operating system for creator businesses</span>
           </div>
 
           <h1 className="text-4xl font-bold leading-[1.08] tracking-tight sm:text-6xl">
-            Stop chasing transfers
+            Run your whole business
             <br />
-            in your{" "}
+            from{" "}
             <span className="bg-gradient-to-r from-blue-600 via-sky-600 to-emerald-600 bg-clip-text text-transparent">
-              group chat
+              one link
             </span>
             .
           </h1>
 
           <p className="mx-auto mt-6 max-w-xl text-base leading-relaxed text-subtle sm:text-lg">
-            Share one link for your event. Guests pay by card or transfer, you see exactly who&apos;s
-            coming and who&apos;s paid, and the money lands straight in your bank account.
+            Sell digital products, run paid events, book sessions, know who your buyers are, and get
+            paid straight to your bank — all from a single dashboard.
           </p>
 
           <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
@@ -268,7 +281,7 @@ export default function LandingPage() {
               <Check className="h-3.5 w-3.5 text-emerald-600" /> Free to start
             </span>
             <span className="flex items-center gap-1.5">
-              <Check className="h-3.5 w-3.5 text-emerald-600" /> Guests need no account
+              <Check className="h-3.5 w-3.5 text-emerald-600" /> No monthly fee
             </span>
             <span className="flex items-center gap-1.5">
               <Check className="h-3.5 w-3.5 text-emerald-600" /> Paid straight to your bank
@@ -277,11 +290,43 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ---------------- What you can sell ---------------- */}
+      <section id="sell" className="border-t border-border/60 px-5 py-24">
+        <div className="mx-auto max-w-6xl">
+          <div className="mx-auto max-w-2xl text-center">
+            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+              Everything you sell, in one place
+            </h2>
+            <p className="mt-4 text-base text-subtle">
+              Products, events and services sit side by side — same checkout, same buyer list, same
+              bank account.
+            </p>
+          </div>
+
+          <div className="mt-14 grid gap-5 md:grid-cols-3">
+            {SELLABLE.map((item) => (
+              <div
+                key={item.title}
+                className="rounded-2xl border border-border bg-surface p-7 transition-all hover:-translate-y-1 hover:border-subtle/30"
+              >
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-500/10">
+                  <item.icon className="h-5 w-5 text-blue-600" />
+                </div>
+                <h3 className="mt-5 text-lg font-bold">{item.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-subtle">{item.body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ---------------- Before / after ---------------- */}
       <section className="border-t border-border/60 px-5 py-24">
         <div className="mx-auto max-w-5xl">
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">You know the wahala</h2>
+            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+              Stop running your business out of a chat thread
+            </h2>
             <p className="mt-4 text-base text-subtle">
               Every time money is involved, a good idea turns into admin work.
             </p>
@@ -289,9 +334,7 @@ export default function LandingPage() {
 
           <div className="mt-14 grid gap-5 md:grid-cols-2">
             <div className="rounded-2xl border border-border bg-surface p-7">
-              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-subtle">
-                The usual way
-              </p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-subtle">Before</p>
               <ul className="mt-6 space-y-4">
                 {BEFORE.map((item) => (
                   <li key={item} className="flex items-start gap-3 text-sm text-subtle">
@@ -323,9 +366,9 @@ export default function LandingPage() {
       <section id="how-it-works" className="border-t border-border/60 px-5 py-24">
         <div className="mx-auto max-w-6xl">
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Three steps, one link</h2>
+            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Three steps to your first sale</h2>
             <p className="mt-4 text-base text-subtle">
-              You could be collecting money for your next event before the end of the day.
+              You could be taking payments before the end of the day.
             </p>
           </div>
 
@@ -342,34 +385,32 @@ export default function LandingPage() {
           <div className="mx-auto mt-12 flex max-w-2xl items-center gap-3 rounded-2xl border border-border bg-muted/50 px-5 py-4">
             <Link2 className="h-4 w-4 shrink-0 text-blue-600" />
             <p className="text-sm text-subtle">
-              Your link looks like <span className="font-semibold text-text">paylance.me/yourname</span> —
-              short enough to read out loud.
+              Your storefront lives at{" "}
+              <span className="font-semibold text-text">paylance.me/yourname</span> — short enough to
+              read out loud.
             </p>
           </div>
         </div>
       </section>
 
-      {/* ---------------- Guest experience / trust ---------------- */}
-      <section id="guests" className="border-t border-border/60 px-5 py-24">
+      {/* ---------------- Buyer trust ---------------- */}
+      <section className="border-t border-border/60 px-5 py-24">
         <div className="mx-auto max-w-6xl">
           <div className="mx-auto max-w-2xl text-center">
             <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-              Your guests won&apos;t think it&apos;s a scam
+              Built so buyers actually go through with it
             </h2>
             <p className="mt-4 text-base text-subtle">
-              Nobody in Nigeria taps a payment link without thinking twice. Every event page is built
-              to answer that hesitation before it costs you a guest.
+              Nobody taps a payment link without thinking twice. Every page is designed to answer
+              that hesitation before it costs you a sale.
             </p>
           </div>
 
           <div className="mt-14 grid gap-5 sm:grid-cols-2">
-            {GUEST_TRUST.map((item) => (
-              <div
-                key={item.title}
-                className="rounded-2xl border border-border bg-surface p-6 transition-all hover:-translate-y-1 hover:border-subtle/30"
-              >
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-500/10">
-                  <item.icon className="h-5 w-5 text-blue-600" />
+            {BUYER_TRUST.map((item) => (
+              <div key={item.title} className="rounded-2xl border border-border bg-surface p-6">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-500/10">
+                  <item.icon className="h-5 w-5 text-emerald-600" />
                 </div>
                 <h3 className="mt-5 text-base font-bold">{item.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-subtle">{item.body}</p>
@@ -379,26 +420,24 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ---------------- The rest of the product ---------------- */}
-      <section id="more" className="border-t border-border/60 px-5 py-24">
+      {/* ---------------- The dashboard ---------------- */}
+      <section id="dashboard" className="border-t border-border/60 px-5 py-24">
         <div className="mx-auto max-w-6xl">
           <div className="mx-auto max-w-2xl text-center">
-            <div className="mx-auto mb-5 flex w-fit items-center gap-2 rounded-full border border-border bg-surface px-4 py-1.5">
-              <Sparkles className="h-3.5 w-3.5 text-blue-600" />
-              <span className="text-xs font-medium text-subtle">When you&apos;re ready</span>
-            </div>
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">It doesn&apos;t stop at tickets</h2>
+            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+              The part that makes it a business
+            </h2>
             <p className="mt-4 text-base text-subtle">
-              Once your bank is connected and money is moving, selling anything else is one click —
-              not a whole new setup.
+              Selling is the easy half. Knowing who bought, what earned, and where the money went is
+              what turns it into something you can run.
             </p>
           </div>
 
           <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {OS_FEATURES.map((feature) => (
+            {DASHBOARD.map((feature) => (
               <div key={feature.title} className="rounded-2xl border border-border bg-surface p-6">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-500/10">
-                  <feature.icon className="h-5 w-5 text-emerald-600" />
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-500/10">
+                  <feature.icon className="h-5 w-5 text-blue-600" />
                 </div>
                 <h3 className="mt-5 text-base font-bold">{feature.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-subtle">{feature.body}</p>
@@ -421,17 +460,14 @@ export default function LandingPage() {
             </p>
 
             <div className="mx-auto mt-8 grid max-w-lg gap-3 text-left sm:grid-cols-2">
-              {[
-                "No subscription",
-                "No setup fee",
-                "Unlimited events",
-                "Free events stay free",
-              ].map((item) => (
-                <div key={item} className="flex items-center gap-2.5 text-sm">
-                  <Check className="h-4 w-4 shrink-0 text-emerald-600" />
-                  {item}
-                </div>
-              ))}
+              {["No subscription", "No setup fee", "Unlimited products & events", "Free items stay free"].map(
+                (item) => (
+                  <div key={item} className="flex items-center gap-2.5 text-sm">
+                    <Check className="h-4 w-4 shrink-0 text-emerald-600" />
+                    {item}
+                  </div>
+                )
+              )}
             </div>
 
             <Link
@@ -479,10 +515,10 @@ export default function LandingPage() {
           />
           <div className="relative">
             <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-              What are you planning?
+              What are you selling?
             </h2>
             <p className="mx-auto mt-4 max-w-lg text-base text-subtle">
-              Set it up now, share the link tonight, and let people pay you properly.
+              Set it up now, share your link today, and let people pay you properly.
             </p>
             <Link
               href={primaryHref}
@@ -505,8 +541,8 @@ export default function LandingPage() {
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-x-7 gap-y-2">
-            <a href="#how-it-works" className="text-xs text-subtle transition-colors hover:text-text">
-              How it works
+            <a href="#sell" className="text-xs text-subtle transition-colors hover:text-text">
+              What you can sell
             </a>
             <a href="#pricing" className="text-xs text-subtle transition-colors hover:text-text">
               Pricing
@@ -519,9 +555,7 @@ export default function LandingPage() {
             </Link>
           </div>
 
-          <p className="text-xs text-subtle">
-            © {new Date().getFullYear()} Paylance. Made for Nigerian creators.
-          </p>
+          <p className="text-xs text-subtle">© {new Date().getFullYear()} Paylance</p>
         </div>
       </footer>
     </main>

@@ -6,7 +6,7 @@ This README is the living product and execution document. We will update it cont
 
 ## Product Positioning
 
-Paylance is a creator business operating system for Africa.
+Paylance is a creator business operating system. Anyone selling to an audience can use it.
 
 The goal is to go beyond a simple storefront and help creators run revenue, audience, products, and payouts in one place.
 
@@ -47,7 +47,7 @@ The goal is to go beyond a simple storefront and help creators run revenue, audi
   - Bricolage Grotesque font
   - Sidebar profile section pinned to bottom
   - Custom avatar integrated
-  - Currency standardized to Nigerian Naira (₦)
+  - Currency currently Naira (₦) — see the open question on multi-currency below
 - Utilities:
   - Supabase client bootstrap
   - `lib/money.ts` — integer-kobo conversion, formatting and platform fee calculation
@@ -74,6 +74,21 @@ The goal is to go beyond a simple storefront and help creators run revenue, audi
     idempotently; event revenue is derived from `orders`, never accumulated on the row
   - Requires `commerce-core.sql` and the `PAYMENTS_PROVIDER_SECRET_KEY` (or legacy
     `PAYSTACK_SECRET_KEY`) + `SUPABASE_SERVICE_ROLE_KEY` environment variables
+
+## Open question: currency and reach
+
+Positioning is global — anyone selling to an audience can use Paylance. The money
+layer is not there yet, and the gap is worth being honest about:
+
+- All amounts are stored as integer **kobo** and formatted as **₦** (`lib/money.ts`).
+- Payments run through Paystack, which covers Nigeria, Ghana, South Africa and Kenya —
+  not "anyone, anywhere".
+- The bank-connection flow requests a Nigerian bank list.
+
+None of this blocks the current build, and `lib/payments/` exists precisely so another
+processor can be added without touching checkout. But before marketing to creators
+outside those markets, we need a decision on multi-currency storage/display and a
+second payment provider.
 
 ## Product Roadmap (Suggested)
 

@@ -11,31 +11,31 @@ const bricolageGrotesque = Bricolage_Grotesque({
 });
 
 const SITE_DESCRIPTION =
-  "Share one link for your event. Guests pay by card or transfer, you see who's coming and who's paid, and the money lands straight in your bank account.";
+  "Sell digital products, run paid events and book sessions from one link. Know who your buyers are, track what you earn, and get paid straight to your bank.";
 
 export const metadata: Metadata = {
   title: {
-    default: "Paylance — Stop chasing transfers in your group chat",
+    default: "Paylance — Run your whole business from one link",
     template: "%s | Paylance"
   },
   description: SITE_DESCRIPTION,
   keywords: [
-    "event ticketing Nigeria",
-    "collect money for event",
-    "sell tickets Nigeria",
-    "Paystack",
-    "party payment link",
-    "creator storefront"
+    "creator business",
+    "sell digital products",
+    "event ticketing",
+    "creator storefront",
+    "link in bio payments",
+    "creator payouts"
   ],
   openGraph: {
-    title: "Paylance — Stop chasing transfers in your group chat",
+    title: "Paylance — Run your whole business from one link",
     description: SITE_DESCRIPTION,
     siteName: "Paylance",
     type: "website"
   },
   twitter: {
     card: "summary_large_image",
-    title: "Paylance — Stop chasing transfers in your group chat",
+    title: "Paylance — Run your whole business from one link",
     description: SITE_DESCRIPTION
   }
 };
