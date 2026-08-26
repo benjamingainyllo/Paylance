@@ -22,6 +22,24 @@ html[data-theme="light"] {
   color-scheme: light;
 }
 
+/* Marketing pages always render light, regardless of the dashboard theme. */
+.theme-light {
+  --background: 255 255 255; /* White */
+  --surface: 249 250 251; /* Gray-50 */
+  --muted: 243 244 246; /* Gray-100 */
+  --border: 229 231 235; /* Gray-200 */
+  --text: 17 24 39; /* Gray-900 */
+  --subtle: 107 114 128; /* Gray-500 */
+  color-scheme: light;
+}
+
+/* Keep the page edges white when a light-scoped page is rendered, so
+   overscroll doesn't reveal the dark body behind it. */
+html:has(.theme-light),
+html:has(.theme-light) body {
+  background: #ffffff;
+}
+
 body {
   margin: 0;
   background: rgb(var(--background));

@@ -24,42 +24,42 @@ const FEATURES = [
     icon: Store,
     title: "Your own storefront",
     body: "A branded page at paylance.com/yourname where your audience can browse and buy everything you sell — no website needed.",
-    accent: "text-blue-400",
+    accent: "text-blue-600",
     bg: "bg-blue-500/10",
   },
   {
     icon: Sparkles,
     title: "Sell digital offers",
     body: "Ebooks, presets, templates, coaching calls. Create an offer in a minute and share the link anywhere.",
-    accent: "text-purple-400",
+    accent: "text-purple-600",
     bg: "bg-purple-500/10",
   },
   {
     icon: Ticket,
     title: "Events & ticketing",
     body: "Host workshops, meetups and virtual sessions. Sell tickets or take free RSVPs, and track who's coming.",
-    accent: "text-orange-400",
+    accent: "text-orange-600",
     bg: "bg-orange-500/10",
   },
   {
     icon: Users,
     title: "Own your audience",
     body: "Every buyer and lead lands in your CRM. Tag them, segment them, and reach them directly — no algorithm in the way.",
-    accent: "text-emerald-400",
+    accent: "text-emerald-600",
     bg: "bg-emerald-500/10",
   },
   {
     icon: BarChart3,
     title: "Revenue intelligence",
     body: "See what actually earns. Track sales, ticket revenue and growth over time in one clean dashboard.",
-    accent: "text-sky-400",
+    accent: "text-sky-600",
     bg: "bg-sky-500/10",
   },
   {
     icon: Wallet,
     title: "Get paid in Naira",
     body: "Payments run on Paystack and settle to your local bank account. Transparent fees, no surprises.",
-    accent: "text-amber-400",
+    accent: "text-amber-600",
     bg: "bg-amber-500/10",
   },
 ];
@@ -166,7 +166,7 @@ export default function LandingPage() {
   const isSignedIn = mounted && !!user;
 
   return (
-    <main className="min-h-screen bg-background text-text overflow-x-hidden">
+    <main className="theme-light min-h-screen bg-background text-text overflow-x-hidden">
       {/* ---------------- Nav ---------------- */}
       <header className="sticky top-0 z-50 border-b border-border/60 bg-background/80 backdrop-blur-xl">
         <nav className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5">
@@ -255,7 +255,7 @@ export default function LandingPage() {
         {/* Ambient glow */}
         <div
           aria-hidden
-          className="pointer-events-none absolute left-1/2 top-0 h-[420px] w-[820px] max-w-[140vw] -translate-x-1/2 rounded-full opacity-30 blur-[110px]"
+          className="pointer-events-none absolute left-1/2 top-0 h-[420px] w-[820px] max-w-[140vw] -translate-x-1/2 rounded-full opacity-[0.16] blur-[110px]"
           style={{ background: "radial-gradient(circle, #3B82F6 0%, transparent 65%)" }}
         />
 
@@ -269,7 +269,7 @@ export default function LandingPage() {
             Turn your audience
             <br />
             into a{" "}
-            <span className="bg-gradient-to-r from-blue-400 via-sky-400 to-emerald-400 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-blue-600 via-sky-600 to-emerald-600 bg-clip-text text-transparent">
               real business
             </span>
             .
@@ -371,7 +371,7 @@ export default function LandingPage() {
           <div className="mt-14 grid gap-6 md:grid-cols-3">
             {STEPS.map((step) => (
               <div key={step.number} className="relative rounded-2xl border border-border bg-surface p-7">
-                <span className="text-sm font-bold text-blue-500">{step.number}</span>
+                <span className="text-sm font-bold text-blue-600">{step.number}</span>
                 <h3 className="mt-4 text-lg font-bold">{step.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-subtle">{step.body}</p>
               </div>
@@ -471,7 +471,7 @@ export default function LandingPage() {
         <div className="relative mx-auto max-w-4xl overflow-hidden rounded-3xl border border-border bg-surface px-6 py-16 text-center">
           <div
             aria-hidden
-            className="pointer-events-none absolute left-1/2 top-0 h-64 w-[600px] max-w-[120vw] -translate-x-1/2 rounded-full opacity-25 blur-[90px]"
+            className="pointer-events-none absolute left-1/2 top-0 h-64 w-[600px] max-w-[120vw] -translate-x-1/2 rounded-full opacity-[0.14] blur-[90px]"
             style={{ background: "radial-gradient(circle, #3B82F6 0%, transparent 65%)" }}
           />
           <div className="relative">
