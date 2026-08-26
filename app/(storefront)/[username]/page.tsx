@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { formatKobo } from "@/lib/money";
 import { useAuth } from "@/components/auth/auth-provider";
 import { 
   Share2, 
@@ -38,7 +39,7 @@ interface Offer {
   id: string;
   title: string;
   description: string | null;
-  price_naira: number;
+  price_kobo: number;
   cover_image_url: string | null;
   offer_type: string;
 }
@@ -50,8 +51,7 @@ interface StorefrontEvent {
   time: string | null;
   location: string | null;
   cover_image_url: string | null;
-  price_naira: number;
-  is_free: boolean;
+  price_kobo: number;
   status: string | null;
 }
 
@@ -100,7 +100,7 @@ export default function StorefrontPage() {
         .from("offers")
         .select("*")
         .eq("user_id", profileData.id)
-        .eq("is_published", true)
+        .eq("publish_status", "published")
         .order("created_at", { ascending: false });
 
       if (offersData) {
@@ -112,7 +112,7 @@ export default function StorefrontPage() {
         .from("events")
         .select("*")
         .eq("creator_id", profileData.id)
-        .neq("status", "Cancelled")
+        .eq("publish_status", "published")
         .order("date", { ascending: true });
 
       if (eventsData) {
@@ -150,14 +150,6 @@ export default function StorefrontPage() {
 
   const displayName = [creator?.first_name, creator?.last_name].filter(Boolean).join(" ") || "Creator";
   const categoryLabel = creator?.category ? creator.category.charAt(0).toUpperCase() + creator.category.slice(1) : "";
-
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat("en-NG", {
-      style: "currency",
-      currency: "NGN",
-      minimumFractionDigits: 0,
-    }).format(price).replace("NGN", "₦");
-  };
 
   return (
     <main className="min-h-screen bg-black text-white font-sans selection:bg-blue-500/30">
@@ -307,7 +299,7 @@ export default function StorefrontPage() {
                           <p className="text-xs text-zinc-500 mt-1 line-clamp-1">{offer.description}</p>
                         </div>
                         <div className="text-right shrink-0">
-                          <p className="text-sm font-bold text-emerald-400">{formatPrice(offer.price_naira)}</p>
+                          <p className="text-sm font-bold text-emerald-400">{formatKobo(Number(offer.price_kobo ?? 0))}</p>
                           <ChevronRight className="h-4 w-4 text-zinc-600 ml-auto mt-1" />
                         </div>
                       </div>
@@ -359,7 +351,7 @@ export default function StorefrontPage() {
                         </div>
                         <div className="text-right shrink-0">
                           <p className="text-sm font-bold text-emerald-400">
-                            {event.is_free ? "FREE" : formatPrice(event.price_naira)}
+                            {Number(event.price_kobo ?? 0) === 0 ? "FREE" : formatKobo(Number(event.price_kobo))}
                           </p>
                           <ChevronRight className="h-4 w-4 text-zinc-600 ml-auto mt-1" />
                         </div>

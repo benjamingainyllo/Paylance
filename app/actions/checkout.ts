@@ -3,169 +3,282 @@
 import { v4 as uuidv4 } from "uuid";
 import { headers } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { calculatePlatformFee, initializePaystackTransaction, verifyPaystackTransaction } from "@/lib/paystack";
-import { markTransactionSuccessful } from "@/lib/transactions";
+import { calculatePlatformFeeKobo, type Kobo, type PlatformFeeType } from "@/lib/money";
+import { getPaymentProvider } from "@/lib/payments";
+import { markOrderFailed, settleOrder } from "@/lib/orders";
 
 interface CheckoutPayload {
-  offer_id?: string;
-  event_id?: string;
-  email: string;
-  amountInNaira: number;
-  customer_name?: string;
+  itemType: "offer" | "event";
+  itemId: string;
+  buyerEmail: string;
+  buyerName?: string;
+  buyerPhone?: string;
 }
 
-function getSiteOrigin() {
+interface CheckoutResult {
+  success: boolean;
+  error?: string;
+  authorizationUrl?: string | null;
+  reference?: string | null;
+  /** Free items complete instantly — there is no provider round-trip. */
+  completedWithoutPayment?: boolean;
+}
+
+function siteOrigin() {
   if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL;
-  const headerList = headers();
-  const host = headerList.get("host");
+  const host = headers().get("host");
   const protocol = host?.startsWith("localhost") ? "http" : "https";
   return `${protocol}://${host}`;
 }
 
-export async function createCheckoutSession(payload: CheckoutPayload) {
+/**
+ * Starts a checkout.
+ *
+ * Paylance never receives the buyer's money. For paid items the provider
+ * splits at transaction time using the creator's subaccount, so the
+ * creator's share settles to their own bank and we only ever receive the
+ * platform fee. A paid checkout without an active payout account is
+ * refused here rather than falling back to a platform-custody charge.
+ */
+export async function createCheckoutSession(payload: CheckoutPayload): Promise<CheckoutResult> {
   try {
-    if (!payload.offer_id && !payload.event_id) {
-      return { success: false, error: "Nothing to check out.", authorization_url: null, reference: null };
+    if (!payload.itemId || !payload.itemType) {
+      return { success: false, error: "Nothing to check out." };
     }
-    if (!payload.email) {
-      return { success: false, error: "Please enter your email.", authorization_url: null, reference: null };
+    if (!payload.buyerEmail) {
+      return { success: false, error: "Please enter your email." };
     }
 
     const admin = createAdminClient();
+    const item = await loadSellableItem(payload.itemType, payload.itemId);
 
-    // Resolve who gets credited for this sale.
-    let creatorId: string | null = null;
-    if (payload.offer_id) {
-      const { data: offer } = await admin
-        .from("offers")
-        .select("user_id")
-        .eq("id", payload.offer_id)
-        .single();
-      creatorId = offer?.user_id ?? null;
-    } else if (payload.event_id) {
-      const { data: event } = await admin
-        .from("events")
-        .select("creator_id")
-        .eq("id", payload.event_id)
-        .single();
-      creatorId = event?.creator_id ?? null;
+    if (!item) {
+      return { success: false, error: "This item is no longer available." };
     }
-
-    if (!creatorId) {
-      return { success: false, error: "Could not find that item.", authorization_url: null, reference: null };
+    if (item.publishStatus !== "published") {
+      return { success: false, error: "This item isn't on sale yet." };
+    }
+    if (item.soldOut) {
+      return { success: false, error: "This event is sold out." };
     }
 
     const reference = uuidv4();
+    const grossKobo: Kobo = item.priceKobo;
 
-    // Free event: register immediately, no Paystack round-trip needed.
-    if (payload.event_id && payload.amountInNaira <= 0) {
-      const { error: insertError } = await admin.from("transactions").insert({
-        event_id: payload.event_id,
-        creator_id: creatorId,
-        customer_email: payload.email,
-        customer_name: payload.customer_name ?? null,
-        amount: 0,
-        platform_fee: 0,
-        ticket_quantity: 1,
-        status: "success",
-        reference,
-      });
+    // ---- Free item: record the order, no money moves. ----
+    if (grossKobo === 0) {
+      const { data: order, error: insertError } = await admin
+        .from("orders")
+        .insert({
+          reference,
+          creator_id: item.creatorId,
+          item_type: payload.itemType,
+          offer_id: payload.itemType === "offer" ? item.id : null,
+          event_id: payload.itemType === "event" ? item.id : null,
+          item_title: item.title,
+          quantity: 1,
+          gross_kobo: 0,
+          platform_fee_kobo: 0,
+          provider_fee_kobo: 0,
+          net_kobo: 0,
+          status: "pending",
+          buyer_email: payload.buyerEmail,
+          buyer_name: payload.buyerName ?? null,
+          buyer_phone: payload.buyerPhone ?? null,
+        })
+        .select()
+        .single();
 
-      if (insertError) {
-        console.error("Error creating RSVP:", insertError);
-        return { success: false, error: "Could not complete your RSVP.", authorization_url: null, reference: null };
+      if (insertError || !order) {
+        console.error("Free registration failed:", insertError);
+        return { success: false, error: "Could not complete your registration." };
       }
 
-      await admin.rpc("increment_event_stats", {
-        p_event_id: payload.event_id,
-        p_attendees: 1,
-        p_revenue: 0,
-      });
+      const settled = await settleOrder({ reference, channel: "unknown" });
+      if (!settled.ok) {
+        return { success: false, error: "Could not complete your registration." };
+      }
 
-      return { success: true, authorization_url: null, reference, isFree: true };
+      return { success: true, reference, completedWithoutPayment: true, authorizationUrl: null };
     }
 
-    const { error: insertError } = await admin.from("transactions").insert({
-      offer_id: payload.offer_id ?? null,
-      event_id: payload.event_id ?? null,
-      creator_id: creatorId,
-      customer_email: payload.email,
-      customer_name: payload.customer_name ?? null,
-      amount: payload.amountInNaira,
-      platform_fee: calculatePlatformFee(payload.amountInNaira),
-      ticket_quantity: 1,
-      status: "pending",
+    // ---- Paid item: requires a connected bank account. ----
+    const { data: payoutAccount } = await admin
+      .from("payout_accounts")
+      .select("provider_subaccount_id, status, platform_fee_type, platform_fee_value")
+      .eq("creator_id", item.creatorId)
+      .maybeSingle();
+
+    if (
+      !payoutAccount ||
+      payoutAccount.status !== "active" ||
+      !payoutAccount.provider_subaccount_id
+    ) {
+      // Deliberately not falling back to a non-split charge: that would put
+      // the money in Paylance's account, which we must never do.
+      return {
+        success: false,
+        error: "This creator hasn't finished setting up payments yet.",
+      };
+    }
+
+    const platformFeeKobo = calculatePlatformFeeKobo(
+      grossKobo,
+      (payoutAccount.platform_fee_type ?? "percentage") as PlatformFeeType,
+      payoutAccount.platform_fee_value ?? 900
+    );
+
+    const { error: insertError } = await admin.from("orders").insert({
       reference,
+      creator_id: item.creatorId,
+      item_type: payload.itemType,
+      offer_id: payload.itemType === "offer" ? item.id : null,
+      event_id: payload.itemType === "event" ? item.id : null,
+      item_title: item.title,
+      quantity: 1,
+      gross_kobo: grossKobo,
+      platform_fee_kobo: platformFeeKobo,
+      provider_fee_kobo: 0,
+      net_kobo: grossKobo - platformFeeKobo,
+      status: "pending",
+      buyer_email: payload.buyerEmail,
+      buyer_name: payload.buyerName ?? null,
+      buyer_phone: payload.buyerPhone ?? null,
     });
 
     if (insertError) {
-      console.error("Error creating transaction:", insertError);
-      return { success: false, error: "Could not start checkout.", authorization_url: null, reference: null };
+      console.error("Order creation failed:", insertError);
+      return { success: false, error: "Could not start checkout." };
     }
 
-    const callbackUrl = `${getSiteOrigin()}/checkout/success?reference=${reference}`;
+    const provider = getPaymentProvider();
 
-    const paystackRes = await initializePaystackTransaction({
-      email: payload.email,
-      amountInNaira: payload.amountInNaira,
-      reference,
-      callbackUrl,
-      metadata: {
-        offer_id: payload.offer_id ?? null,
-        event_id: payload.event_id ?? null,
-      },
-    });
+    try {
+      const { authorizationUrl } = await provider.initializeCheckout({
+        reference,
+        buyerEmail: payload.buyerEmail,
+        amountKobo: grossKobo,
+        platformFeeKobo,
+        providerSubaccountId: payoutAccount.provider_subaccount_id,
+        callbackUrl: `${siteOrigin()}/checkout/success?reference=${reference}`,
+        metadata: {
+          item_type: payload.itemType,
+          item_id: item.id,
+          creator_id: item.creatorId,
+        },
+      });
 
-    if (!paystackRes?.status || !paystackRes?.data?.authorization_url) {
-      return { success: false, error: paystackRes?.message || "Could not initialize payment.", authorization_url: null, reference };
+      return { success: true, authorizationUrl, reference };
+    } catch (providerError) {
+      await markOrderFailed(reference, "failed");
+      console.error("Provider init failed:", providerError);
+      return { success: false, error: "Could not start payment. Please try again." };
     }
-
-    return { success: true, authorization_url: paystackRes.data.authorization_url, reference };
   } catch (error) {
     console.error("Checkout error:", error);
-    return {
-      success: false,
-      error: "Payments aren't configured yet. Please try again later.",
-      authorization_url: null,
-      reference: null,
-    };
+    return { success: false, error: "Something went wrong starting checkout." };
   }
 }
 
-// Called from the /checkout/success return page as a fallback in case the
-// webhook hasn't landed yet — actively verifies with Paystack instead of
-// just trusting the redirect.
+/**
+ * Fallback verification for the return page, in case the webhook is late.
+ * Always re-checks with the provider — never trusts the redirect alone.
+ */
 export async function verifyCheckout(reference: string) {
   try {
     const admin = createAdminClient();
 
-    const { data: txn, error } = await admin
-      .from("transactions")
-      .select("*, offers(title), events(title)")
+    const { data: order } = await admin
+      .from("orders")
+      .select("reference, status, item_title, gross_kobo")
       .eq("reference", reference)
       .maybeSingle();
 
-    if (error || !txn) {
-      return { success: false, error: "Transaction not found." };
+    if (!order) return { success: false as const, error: "Order not found." };
+    if (order.status === "paid") {
+      return { success: true as const, status: "paid" as const, order };
+    }
+    // A free order settles inline, so anything still pending here is a payment.
+    if (Number(order.gross_kobo) === 0) {
+      return { success: true as const, status: order.status, order };
     }
 
-    if (txn.status === "success") {
-      return { success: true, status: "success", transaction: txn };
+    const verified = await getPaymentProvider().verifyTransaction(reference);
+
+    if (verified.status === "paid") {
+      const settled = await settleOrder({
+        reference,
+        providerReference: verified.providerReference,
+        providerFeeKobo: verified.providerFeeKobo,
+        channel: verified.channel,
+        paidAt: verified.paidAt,
+      });
+      if (!settled.ok) return { success: false as const, error: settled.error };
+      return { success: true as const, status: "paid" as const, order: { ...order, status: "paid" } };
     }
 
-    const verification = await verifyPaystackTransaction(reference);
-
-    if (verification?.data?.status === "success") {
-      const result = await markTransactionSuccessful(reference);
-      if (!result.success) {
-        return { success: false, error: result.error };
-      }
-      return { success: true, status: "success", transaction: { ...txn, status: "success" } };
+    if (verified.status === "failed" || verified.status === "abandoned") {
+      await markOrderFailed(reference, verified.status);
     }
 
-    return { success: true, status: verification?.data?.status ?? "pending", transaction: txn };
+    return { success: true as const, status: verified.status, order };
   } catch (error) {
     console.error("Verify checkout error:", error);
-    return { success: false, error: "Could not verify payment status." };
+    return { success: false as const, error: "Could not verify payment status." };
   }
+}
+
+interface SellableItem {
+  id: string;
+  creatorId: string;
+  title: string;
+  priceKobo: Kobo;
+  publishStatus: string;
+  soldOut: boolean;
+}
+
+async function loadSellableItem(
+  itemType: "offer" | "event",
+  itemId: string
+): Promise<SellableItem | null> {
+  const admin = createAdminClient();
+
+  if (itemType === "event") {
+    const { data } = await admin
+      .from("events")
+      .select("id, creator_id, title, price_kobo, publish_status, capacity, attendees_count")
+      .eq("id", itemId)
+      .maybeSingle();
+
+    if (!data) return null;
+
+    return {
+      id: data.id,
+      creatorId: data.creator_id,
+      title: data.title,
+      priceKobo: Number(data.price_kobo ?? 0),
+      publishStatus: data.publish_status,
+      soldOut:
+        data.capacity !== null &&
+        data.capacity !== undefined &&
+        Number(data.attendees_count ?? 0) >= Number(data.capacity),
+    };
+  }
+
+  const { data } = await admin
+    .from("offers")
+    .select("id, user_id, title, price_kobo, publish_status")
+    .eq("id", itemId)
+    .maybeSingle();
+
+  if (!data) return null;
+
+  return {
+    id: data.id,
+    creatorId: data.user_id,
+    title: data.title,
+    priceKobo: Number(data.price_kobo ?? 0),
+    publishStatus: data.publish_status,
+    soldOut: false,
+  };
 }

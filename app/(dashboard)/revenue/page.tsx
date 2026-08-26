@@ -1,50 +1,57 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CircleDollarSign, Eye, Heart, Plus, Wallet, ShoppingBag, ArrowUpRight } from "lucide-react";
+import { CircleDollarSign, Heart, Plus, Wallet, ShoppingBag } from "lucide-react";
 import { TopFilters } from "@/components/dashboard/top-filters";
 import { MetricCard } from "@/components/dashboard/metric-card";
-import { PerformanceChart } from "@/components/dashboard/performance-chart";
 import { useAuth } from "@/components/auth/auth-provider";
 import { createClient } from "@/lib/supabase/client";
-import { useCurrency } from "@/hooks/use-currency";
+import { formatKobo } from "@/lib/money";
 
-interface Transaction {
+interface Order {
   id: string;
-  amount: number;
-  customer_email: string;
-  customer_name: string | null;
+  reference: string;
+  item_title: string | null;
+  item_type: string;
+  gross_kobo: number;
+  platform_fee_kobo: number;
+  provider_fee_kobo: number;
+  net_kobo: number;
+  buyer_email: string;
+  buyer_name: string | null;
   status: string;
+  payment_channel: string | null;
+  paid_at: string | null;
   created_at: string;
-  offer_id: string | null;
 }
 
 export default function RevenuePage() {
   const { user } = useAuth();
   const supabase = createClient();
-  const { formatPrice } = useCurrency();
 
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [totalSales, setTotalSales] = useState(0);
   const [offersCount, setOffersCount] = useState(0);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [totalNet, setTotalNet] = useState(0);
 
   useEffect(() => {
     if (!user) return;
 
     const fetchData = async () => {
-      // Fetch transactions
-      const { data: txns } = await supabase
-        .from("transactions")
+      // The ledger: every order across offers AND events.
+      const { data: rows } = await supabase
+        .from("orders")
         .select("*")
         .eq("creator_id", user.id)
         .order("created_at", { ascending: false });
 
-      if (txns) {
-        setTransactions(txns as Transaction[]);
-        const successTxns = txns.filter((t: any) => t.status === "success");
-        setTotalRevenue(successTxns.reduce((sum: number, t: any) => sum + Number(t.amount), 0));
-        setTotalSales(successTxns.length);
+      if (rows) {
+        setOrders(rows as Order[]);
+        const paid = rows.filter((o: any) => o.status === "paid");
+        setTotalRevenue(paid.reduce((sum: number, o: any) => sum + Number(o.gross_kobo || 0), 0));
+        setTotalNet(paid.reduce((sum: number, o: any) => sum + Number(o.net_kobo || 0), 0));
+        setTotalSales(paid.length);
       }
 
       // Fetch offers count
@@ -59,20 +66,24 @@ export default function RevenuePage() {
     fetchData();
   }, [user]);
 
+  const paidOrders = orders.filter((o) => o.status === "paid");
+  const totalPlatformFee = paidOrders.reduce((sum, o) => sum + Number(o.platform_fee_kobo || 0), 0);
+  const totalProviderFee = paidOrders.reduce((sum, o) => sum + Number(o.provider_fee_kobo || 0), 0);
+
   const metrics = [
     {
       title: "Total Revenue",
-      value: formatPrice(totalRevenue),
+      value: formatKobo(totalRevenue),
       change: "all time",
       icon: CircleDollarSign,
       iconColor: "#22C55E",
       iconBgColor: "rgba(34, 197, 94, 0.1)",
     },
     {
-      title: "Store visits",
-      value: "0",
-      change: "coming soon",
-      icon: Eye,
+      title: "Settled",
+      value: formatKobo(totalNet),
+      change: "to your bank",
+      icon: Wallet,
       iconColor: "#F97316",
       iconBgColor: "rgba(249, 115, 22, 0.1)",
     },
@@ -99,12 +110,12 @@ export default function RevenuePage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-xl font-bold text-text">Revenue</h1>
         <div className="flex items-center gap-3">
-          <button 
+          <button
             onClick={() => window.location.href = "/payouts"}
             className="flex h-9 items-center justify-center gap-2 rounded-lg border border-border bg-muted/50 px-4 text-xs font-semibold text-text transition-colors hover:bg-muted"
           >
             <Wallet className="h-4 w-4" />
-            Withdraw
+            Payouts
           </button>
           <TopFilters />
         </div>
@@ -116,54 +127,65 @@ export default function RevenuePage() {
         ))}
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[2.5fr_1fr]">
-        <div className="rounded-xl border border-border bg-surface p-4 md:p-5">
-          <PerformanceChart />
-        </div>
-        <div className="rounded-xl border border-border bg-surface p-4 md:p-5">
-          <h3 className="text-sm font-semibold text-text mb-4">Revenue Breakdown</h3>
-          {totalRevenue > 0 ? (
-            <div className="space-y-3">
-              <div className="flex justify-between text-sm">
-                <span className="text-subtle">Gross</span>
-                <span className="font-semibold text-text">{formatPrice(totalRevenue)}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-subtle">Platform fee (5%)</span>
-                <span className="font-semibold text-text">-{formatPrice(totalRevenue * 0.05)}</span>
-              </div>
-              <hr className="border-border" />
-              <div className="flex justify-between text-sm">
-                <span className="font-semibold text-text">Net</span>
-                <span className="font-bold text-[#22c55e]">{formatPrice(totalRevenue * 0.95)}</span>
-              </div>
+      <div className="rounded-xl border border-border bg-surface p-4 md:p-5">
+        <h3 className="text-sm font-semibold text-text mb-4">Revenue breakdown</h3>
+        {paidOrders.length > 0 ? (
+          <div className="space-y-3 max-w-md">
+            <div className="flex justify-between text-sm">
+              <span className="text-subtle">Gross</span>
+              <span className="font-semibold text-text">{formatKobo(totalRevenue)}</span>
             </div>
-          ) : (
-            <div className="text-center py-8">
-              <ShoppingBag className="h-10 w-10 text-zinc-700 mx-auto mb-3" />
-              <p className="text-sm text-subtle">No revenue yet</p>
-              <p className="text-xs text-zinc-600 mt-1">Start selling offers to track earnings</p>
+            <div className="flex justify-between text-sm">
+              <span className="text-subtle">Platform fee</span>
+              <span className="font-semibold text-text">-{formatKobo(totalPlatformFee)}</span>
             </div>
-          )}
-        </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-subtle">Processing fee</span>
+              <span className="font-semibold text-text">-{formatKobo(totalProviderFee)}</span>
+            </div>
+            <hr className="border-border" />
+            <div className="flex justify-between text-sm">
+              <span className="font-semibold text-text">Settled to your bank</span>
+              <span className="font-bold text-[#22c55e]">{formatKobo(totalNet)}</span>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <ShoppingBag className="h-10 w-10 text-zinc-700 mx-auto mb-3" />
+            <p className="text-sm text-subtle">No revenue yet</p>
+            <p className="text-xs text-zinc-600 mt-1">Your first sale will show up here</p>
+          </div>
+        )}
       </div>
 
-      {/* Recent Transactions */}
+      {/* Order ledger — offers and events together */}
       <div className="rounded-xl border border-border bg-surface p-4 md:p-5">
-        <h3 className="text-sm font-semibold text-text mb-4">Recent Transactions</h3>
-        {transactions.length > 0 ? (
+        <h3 className="text-sm font-semibold text-text mb-4">Orders</h3>
+        {orders.length > 0 ? (
           <div className="space-y-3">
-            {transactions.slice(0, 10).map((txn) => (
-              <div key={txn.id} className="flex items-center justify-between rounded-lg border border-border bg-muted/30 p-3">
-                <div>
-                  <p className="text-sm font-medium text-text">{txn.customer_name || txn.customer_email}</p>
-                  <p className="text-xs text-subtle">{new Date(txn.created_at).toLocaleDateString()}</p>
-                </div>
-                <div className="text-right">
-                  <p className={`text-sm font-bold ${txn.status === "success" ? "text-[#22c55e]" : "text-amber-500"}`}>
-                    {formatPrice(Number(txn.amount))}
+            {orders.slice(0, 20).map((order) => (
+              <div
+                key={order.id}
+                className="flex items-center justify-between rounded-lg border border-border bg-muted/30 p-3"
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-text truncate">
+                    {order.buyer_name || order.buyer_email}
                   </p>
-                  <p className="text-[10px] uppercase text-subtle">{txn.status}</p>
+                  <p className="text-xs text-subtle truncate">
+                    {order.item_title || order.item_type} ·{" "}
+                    {new Date(order.created_at).toLocaleDateString("en-NG")}
+                  </p>
+                </div>
+                <div className="text-right shrink-0 pl-3">
+                  <p
+                    className={`text-sm font-bold ${
+                      order.status === "paid" ? "text-[#22c55e]" : "text-amber-500"
+                    }`}
+                  >
+                    {formatKobo(Number(order.gross_kobo))}
+                  </p>
+                  <p className="text-[10px] uppercase text-subtle">{order.status}</p>
                 </div>
               </div>
             ))}
@@ -171,8 +193,10 @@ export default function RevenuePage() {
         ) : (
           <div className="text-center py-12">
             <CircleDollarSign className="h-12 w-12 text-zinc-700 mx-auto mb-3" />
-            <p className="text-sm font-medium text-text">No transactions yet</p>
-            <p className="text-xs text-subtle mt-1">When customers buy your offers, transactions will appear here</p>
+            <p className="text-sm font-medium text-text">No orders yet</p>
+            <p className="text-xs text-subtle mt-1">
+              When someone buys an offer or a ticket, it appears here
+            </p>
           </div>
         )}
       </div>

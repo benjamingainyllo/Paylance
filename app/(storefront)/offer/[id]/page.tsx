@@ -3,50 +3,58 @@
 import { useEffect, useState, useTransition } from "react";
 import { getOfferById } from "@/app/actions/offers";
 import { createCheckoutSession } from "@/app/actions/checkout";
+import { formatKobo } from "@/lib/money";
 import { Loader2 } from "lucide-react";
-import { useRouter } from "next/navigation";
 
-export default function CheckoutPage({ params }: { params: { id: string } }) {
+export default function OfferCheckoutPage({ params }: { params: { id: string } }) {
   const [offer, setOffer] = useState<any>(null);
   const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
   const [loading, setLoading] = useState(true);
   const [isPending, startTransition] = useTransition();
-  const [includeBump, setIncludeBump] = useState(false);
-  const router = useRouter();
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
   useEffect(() => {
+    let active = true;
+
     async function loadOffer() {
-      const res = await getOfferById(params.id);
-      if (res.success && res.offer) {
-        setOffer(res.offer);
+      try {
+        const res = await getOfferById(params.id);
+        if (active && res.success && res.offer) setOffer(res.offer);
+      } finally {
+        if (active) setLoading(false);
       }
-      setLoading(false);
     }
+
     loadOffer();
+    return () => {
+      active = false;
+    };
   }, [params.id]);
+
+  const priceKobo = Number(offer?.price_kobo ?? 0);
 
   const handleCheckout = () => {
     if (!email) {
-      alert("Please enter your email.");
+      setCheckoutError("Please enter your email.");
       return;
     }
+    setCheckoutError(null);
 
     startTransition(async () => {
-      // Calculate total amount (base + order bump if selected)
-      const bumpAmount = 15000; // Hardcoded bump price for MVP
-      const totalAmount = offer.price_naira + (includeBump ? bumpAmount : 0);
-
       const res = await createCheckoutSession({
-        offer_id: offer.id,
-        email,
-        amountInNaira: totalAmount,
+        itemType: "offer",
+        itemId: offer.id,
+        buyerEmail: email,
+        buyerName: name || undefined,
       });
 
-      if (res.success && res.authorization_url) {
-        // Redirect to Paystack checkout
-        window.location.href = res.authorization_url;
+      if (res.success && res.authorizationUrl) {
+        window.location.href = res.authorizationUrl;
+      } else if (res.success && res.completedWithoutPayment) {
+        window.location.href = `/checkout/success?reference=${res.reference}`;
       } else {
-        alert("Checkout failed: " + res.error);
+        setCheckoutError(res.error || "Checkout failed.");
       }
     });
   };
@@ -54,69 +62,59 @@ export default function CheckoutPage({ params }: { params: { id: string } }) {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#0a0a0a]">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <Loader2 className="h-8 w-8 animate-spin text-white/60" />
       </div>
     );
   }
 
   if (!offer) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0a0a0a] text-white">
-        <p>Offer not found.</p>
+      <div className="flex min-h-screen flex-col items-center justify-center gap-2 bg-[#0a0a0a] text-white">
+        <p className="font-semibold">Offer not found</p>
+        <p className="text-sm text-zinc-500">This offer may have been removed or unpublished.</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] py-12 px-4 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-md space-y-8">
-        <div className="rounded-2xl border border-[#3a3a3a] bg-surface p-8 shadow-xl">
-          <div className="text-center mb-8">
+    <div className="min-h-screen bg-[#0a0a0a] px-4 py-12 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-md">
+        <div className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-8 shadow-xl">
+          <div className="mb-8 text-center">
             <h1 className="text-2xl font-bold text-white">{offer.title}</h1>
-            <p className="mt-2 text-sm text-subtle">{offer.description}</p>
+            {offer.description && (
+              <p className="mt-2 text-sm text-zinc-400">{offer.description}</p>
+            )}
           </div>
 
           <div className="space-y-6">
-            <div className="rounded-xl bg-muted p-4 border border-border">
-              <div className="flex justify-between text-sm text-text font-medium mb-2">
-                <span>Item</span>
-                <span>Price</span>
-              </div>
-              <div className="flex justify-between text-sm text-subtle pb-4 border-b border-border">
+            <div className="rounded-xl border border-zinc-800 bg-zinc-800/40 p-4">
+              <div className="flex justify-between text-sm font-medium text-zinc-300">
                 <span>{offer.title}</span>
-                <span>₦{offer.price_naira.toLocaleString()}</span>
+                <span>{formatKobo(priceKobo)}</span>
               </div>
-
-              {/* MVP Order Bump */}
-              <div className="py-4 border-b border-border">
-                <label className="flex items-start gap-3 cursor-pointer group">
-                  <input
-                    type="checkbox"
-                    checked={includeBump}
-                    onChange={(e) => setIncludeBump(e.target.checked)}
-                    className="mt-1 w-4 h-4 rounded border-border bg-black text-primary focus:ring-primary"
-                  />
-                  <div>
-                    <span className="block text-sm font-medium text-white group-hover:text-primary transition-colors">
-                      Yes, add the VIP Strategy Session
-                    </span>
-                    <span className="block text-xs text-subtle mt-1">
-                      One-time offer to get a 30-minute 1-on-1 strategy call. (+₦15,000)
-                    </span>
-                  </div>
-                </label>
-              </div>
-
-              <div className="flex justify-between text-base font-bold text-white pt-4">
+              <div className="mt-4 flex justify-between border-t border-zinc-800 pt-4 text-base font-bold text-white">
                 <span>Total</span>
-                <span>
-                  ₦{(offer.price_naira + (includeBump ? 15000 : 0)).toLocaleString()}
-                </span>
+                <span>{formatKobo(priceKobo)}</span>
               </div>
             </div>
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-subtle mb-1">
+              <label htmlFor="name" className="mb-1 block text-sm font-medium text-zinc-400">
+                Your name
+              </label>
+              <input
+                id="name"
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Chidi Okonkwo"
+                className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-3 text-sm text-white placeholder-zinc-500 outline-none transition-colors focus:border-blue-500"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="email" className="mb-1 block text-sm font-medium text-zinc-400">
                 Email address
               </label>
               <input
@@ -125,26 +123,29 @@ export default function CheckoutPage({ params }: { params: { id: string } }) {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                className="w-full rounded-lg border border-border bg-muted px-4 py-3 text-sm text-white placeholder-subtle outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-3 text-sm text-white placeholder-zinc-500 outline-none transition-colors focus:border-blue-500"
                 required
               />
             </div>
 
+            {checkoutError && <p className="text-xs text-red-400">{checkoutError}</p>}
+
             <button
               onClick={handleCheckout}
               disabled={isPending}
-              className="w-full flex justify-center items-center rounded-xl bg-primary py-4 text-sm font-bold text-white hover:bg-primary/90 disabled:opacity-70 transition-all shadow-lg shadow-primary/20"
+              className="flex w-full items-center justify-center rounded-xl bg-blue-600 py-4 text-sm font-bold text-white shadow-lg transition-all hover:bg-blue-500 disabled:opacity-70"
             >
               {isPending ? (
                 <>
-                  <Loader2 className="w-5 h-5 animate-spin mr-2" /> Processing...
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Processing...
                 </>
               ) : (
-                `Pay ₦${(offer.price_naira + (includeBump ? 15000 : 0)).toLocaleString()}`
+                `Pay ${formatKobo(priceKobo)}`
               )}
             </button>
-            <p className="text-center text-xs text-subtle mt-4">
-              Secured by Paystack 🔒
+
+            <p className="text-center text-xs text-zinc-500">
+              No account needed. Card or bank transfer.
             </p>
           </div>
         </div>

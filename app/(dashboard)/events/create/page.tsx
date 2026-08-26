@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { CalendarIcon, ImagePlus, Loader2, MapPin } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/components/auth/auth-provider";
+import { parseNairaInput } from "@/lib/money";
+import { toast } from "sonner";
 
 export default function CreateEventPage() {
   const { user } = useAuth();
@@ -46,55 +48,66 @@ export default function CreateEventPage() {
 
   const handleCreateEvent = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSaving(true);
     const supabase = createClient();
 
+    if (!user) {
+      toast.error("You need to be signed in.");
+      return;
+    }
+
+    const priceKobo = isFree ? 0 : parseNairaInput(formData.price);
+    if (priceKobo === null) {
+      toast.error("Enter a valid ticket price.");
+      return;
+    }
+
+    setIsSaving(true);
+
     try {
-      if (!user) throw new Error("Not authenticated");
-
-      let coverImageUrl = null;
+      let coverImageUrl: string | null = null;
       if (imageFile) {
-        const fileExt = imageFile.name.split('.').pop();
-        const fileName = `${Math.random()}.${fileExt}`;
-        const filePath = `${user.id}/${fileName}`;
+        const fileExt = imageFile.name.split(".").pop();
+        const filePath = `${user.id}/${crypto.randomUUID()}.${fileExt}`;
 
-        const { error: uploadError, data } = await supabase.storage
-          .from('event_covers')
+        const { error: uploadError } = await supabase.storage
+          .from("event_covers")
           .upload(filePath, imageFile);
 
         if (uploadError) throw uploadError;
 
-        const { data: { publicUrl } } = supabase.storage
-          .from('event_covers')
-          .getPublicUrl(filePath);
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from("event_covers").getPublicUrl(filePath);
 
         coverImageUrl = publicUrl;
       }
 
-      const { error: insertError } = await supabase
-        .from('events')
-        .insert({
-          creator_id: user.id,
-          title: formData.title,
-          description: formData.description,
-          date: formData.date || null,
-          time: formData.time,
-          location: formData.location,
-          map_link: formData.mapLink,
-          price_naira: isFree ? 0 : parseFloat(formData.price || "0"),
-          is_free: isFree,
-          cover_image_url: coverImageUrl,
-          status: 'Upcoming'
-        });
+      // Created as a DRAFT. Publishing is a separate, gated step — a paid
+      // event can't go live until a bank account is connected.
+      const { error: insertError } = await supabase.from("events").insert({
+        creator_id: user.id,
+        title: formData.title,
+        description: formData.description,
+        date: formData.date || null,
+        time: formData.time,
+        location: formData.location,
+        map_link: formData.mapLink,
+        price_kobo: priceKobo,
+        cover_image_url: coverImageUrl,
+        status: "Upcoming",
+        publish_status: "draft",
+      });
 
       if (insertError) throw insertError;
 
-      // Event created! Redirect back to events list.
+      toast.success("Event saved as a draft.");
       router.push("/events");
       router.refresh();
     } catch (error) {
       console.error("Error creating event:", error);
-      alert("Failed to create event. Please make sure you have run the SQL setup script in Supabase.");
+      toast.error(
+        error instanceof Error ? error.message : "Could not create the event. Please try again."
+      );
     } finally {
       setIsSaving(false);
     }
@@ -327,7 +340,7 @@ export default function CreateEventPage() {
                 disabled={isSaving}
                 className="flex items-center justify-center min-w-[160px] rounded-lg bg-[#d94826] px-6 py-2.5 text-sm font-bold text-white shadow-lg transition-all hover:bg-[#c13d1d] active:scale-[0.98] disabled:opacity-70 disabled:hover:scale-100"
               >
-                {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : "Save and continue"}
+                {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : "Save draft"}
               </button>
             </div>
           </form>

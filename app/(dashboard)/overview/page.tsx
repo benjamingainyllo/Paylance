@@ -5,7 +5,7 @@ import { CircleDollarSign, Eye, FolderPlus, UserRoundPlus } from "lucide-react";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { PerformanceChart } from "@/components/dashboard/performance-chart";
 import { TopFilters } from "@/components/dashboard/top-filters";
-import { useCurrency } from "@/hooks/use-currency";
+import { formatKobo } from "@/lib/money";
 import { useAuth } from "@/components/auth/auth-provider";
 import { createClient } from "@/lib/supabase/client";
 
@@ -13,7 +13,6 @@ export default function OverviewPage() {
   const { user, profile } = useAuth();
   const supabase = createClient();
   const [mounted, setMounted] = useState(false);
-  const { formatPrice } = useCurrency();
 
   // Real metrics from database
   const [totalRevenue, setTotalRevenue] = useState(0);
@@ -30,16 +29,15 @@ export default function OverviewPage() {
     if (!user) return;
 
     const fetchMetrics = async () => {
-      // Fetch total revenue from successful transactions
-      const { data: transactions } = await supabase
-        .from("transactions")
-        .select("amount")
+      // Revenue is the sum of paid orders, in kobo.
+      const { data: orders } = await supabase
+        .from("orders")
+        .select("gross_kobo")
         .eq("creator_id", user.id)
-        .eq("status", "success");
+        .eq("status", "paid");
 
-      if (transactions) {
-        const revenue = transactions.reduce((sum, t) => sum + Number(t.amount), 0);
-        setTotalRevenue(revenue);
+      if (orders) {
+        setTotalRevenue(orders.reduce((sum, o) => sum + Number(o.gross_kobo || 0), 0));
       }
 
       // Fetch audience count
@@ -67,7 +65,7 @@ export default function OverviewPage() {
   const metrics = [
     {
       title: "Total Revenue",
-      value: formatPrice(totalRevenue),
+      value: formatKobo(totalRevenue),
       change: "all time",
       icon: CircleDollarSign,
       iconColor: "#22C55E",
@@ -126,7 +124,7 @@ export default function OverviewPage() {
             {totalRevenue > 0 ? (
               <>
                 <p className="text-sm font-medium text-text">Total earnings</p>
-                <p className="mt-3 text-right text-sm font-semibold text-[#22c55e]">{formatPrice(totalRevenue)}</p>
+                <p className="mt-3 text-right text-sm font-semibold text-[#22c55e]">{formatKobo(totalRevenue)}</p>
               </>
             ) : (
               <>

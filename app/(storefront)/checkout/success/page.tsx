@@ -44,10 +44,9 @@ function CheckoutSuccessContent() {
         return;
       }
 
-      const txn = res.transaction;
-      setItemTitle(txn?.offers?.title || txn?.events?.title || null);
+      setItemTitle(res.order?.item_title ?? null);
 
-      if (res.status === "success") {
+      if (res.status === "paid") {
         setStatus("success");
       } else if (res.status === "failed" || res.status === "abandoned") {
         setStatus("failed");

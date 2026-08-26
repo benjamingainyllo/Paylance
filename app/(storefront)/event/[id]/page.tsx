@@ -3,27 +3,45 @@
 import { useEffect, useState, useTransition } from "react";
 import { getEventById } from "@/app/actions/events";
 import { createCheckoutSession } from "@/app/actions/checkout";
+import { formatKobo } from "@/lib/money";
 import { Loader2, Calendar, MapPin, Users, ExternalLink, CheckCircle2 } from "lucide-react";
 
 export default function EventCheckoutPage({ params }: { params: { id: string } }) {
   const [event, setEvent] = useState<any>(null);
+  const [host, setHost] = useState<any>(null);
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(true);
   const [isPending, startTransition] = useTransition();
-  const [rsvpComplete, setRsvpComplete] = useState(false);
+  const [registered, setRegistered] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
   useEffect(() => {
+    let active = true;
+
     async function loadEvent() {
-      const res = await getEventById(params.id);
-      if (res.success && res.event) {
-        setEvent(res.event);
+      try {
+        const res = await getEventById(params.id);
+        if (!active) return;
+        if (res.success && res.event) {
+          setEvent(res.event);
+          setHost(res.host ?? null);
+        }
+      } finally {
+        // Always resolve loading, even when the query fails, so the page
+        // never sits on an indefinite spinner.
+        if (active) setLoading(false);
       }
-      setLoading(false);
     }
+
     loadEvent();
+    return () => {
+      active = false;
+    };
   }, [params.id]);
+
+  const priceKobo = Number(event?.price_kobo ?? 0);
+  const isFree = priceKobo === 0;
 
   const handleCheckout = () => {
     if (!email) {
@@ -34,16 +52,16 @@ export default function EventCheckoutPage({ params }: { params: { id: string } }
 
     startTransition(async () => {
       const res = await createCheckoutSession({
-        event_id: event.id,
-        email,
-        customer_name: name || undefined,
-        amountInNaira: event.is_free ? 0 : Number(event.price_naira),
+        itemType: "event",
+        itemId: event.id,
+        buyerEmail: email,
+        buyerName: name || undefined,
       });
 
-      if (res.success && res.isFree) {
-        setRsvpComplete(true);
-      } else if (res.success && res.authorization_url) {
-        window.location.href = res.authorization_url;
+      if (res.success && res.completedWithoutPayment) {
+        setRegistered(true);
+      } else if (res.success && res.authorizationUrl) {
+        window.location.href = res.authorizationUrl;
       } else {
         setCheckoutError(res.error || "Something went wrong.");
       }
@@ -53,87 +71,127 @@ export default function EventCheckoutPage({ params }: { params: { id: string } }
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#0a0a0a]">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <Loader2 className="w-8 h-8 animate-spin text-white/60" />
       </div>
     );
   }
 
   if (!event) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0a0a0a] text-white">
-        <p>Event not found.</p>
+      <div className="flex min-h-screen flex-col items-center justify-center gap-2 bg-[#0a0a0a] text-white">
+        <p className="font-semibold">Event not found</p>
+        <p className="text-sm text-zinc-500">This event may have been removed or unpublished.</p>
       </div>
     );
   }
 
   const formattedDate = event.date
-    ? new Date(event.date).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })
-    : "Date TBD";
+    ? new Date(event.date).toLocaleDateString("en-NG", {
+        weekday: "long",
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      })
+    : "Date to be announced";
+
+  const hostName =
+    [host?.first_name, host?.last_name].filter(Boolean).join(" ") || host?.handle || null;
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] py-12 px-4 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-md space-y-6">
-        <div className="overflow-hidden rounded-2xl border border-[#3a3a3a] bg-surface shadow-xl">
-          <div className="relative h-40 w-full bg-muted">
+        <div className="overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/50 shadow-xl">
+          <div className="relative h-44 w-full bg-zinc-800">
             {event.cover_image_url ? (
               <img src={event.cover_image_url} alt={event.title} className="h-full w-full object-cover" />
             ) : (
-              <div className="flex h-full w-full items-center justify-center text-subtle">
-                <Calendar className="h-10 w-10 opacity-20" />
+              <div className="flex h-full w-full items-center justify-center text-zinc-600">
+                <Calendar className="h-10 w-10 opacity-30" />
               </div>
             )}
           </div>
 
-          <div className="p-8">
-            <div className="text-center mb-6">
+          <div className="p-7">
+            <div className="text-center">
               <h1 className="text-2xl font-bold text-white">{event.title}</h1>
-              {event.description && <p className="mt-2 text-sm text-subtle">{event.description}</p>}
+              {event.description && (
+                <p className="mt-2 text-sm text-zinc-400">{event.description}</p>
+              )}
             </div>
 
-            <div className="space-y-3 rounded-xl border border-border bg-muted p-4 mb-6">
-              <div className="flex items-center gap-2 text-sm text-text">
-                <Calendar className="h-4 w-4 text-subtle" />
-                {formattedDate} {event.time ? `• ${event.time}` : ""}
+            {/* The guest is trusting a person, not a platform — so say who. */}
+            {hostName && (
+              <div className="mt-5 flex items-center justify-center gap-3 rounded-xl border border-zinc-800 bg-zinc-800/40 px-4 py-3">
+                {host?.avatar_url ? (
+                  <img src={host.avatar_url} alt={hostName} className="h-9 w-9 rounded-full object-cover" />
+                ) : (
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white">
+                    {hostName.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <div className="text-left">
+                  <p className="text-[10px] uppercase tracking-wider text-zinc-500">Hosted by</p>
+                  {host?.handle ? (
+                    <a href={`/${host.handle}`} className="text-sm font-semibold text-white hover:underline">
+                      {hostName}
+                    </a>
+                  ) : (
+                    <p className="text-sm font-semibold text-white">{hostName}</p>
+                  )}
+                </div>
               </div>
-              <div className="flex items-center gap-2 text-sm text-text">
-                <MapPin className="h-4 w-4 text-subtle" />
+            )}
+
+            <div className="mt-5 space-y-3 rounded-xl border border-zinc-800 bg-zinc-800/40 p-4">
+              <div className="flex items-center gap-2 text-sm text-zinc-200">
+                <Calendar className="h-4 w-4 shrink-0 text-zinc-500" />
+                {formattedDate}
+                {event.time ? ` • ${event.time}` : ""}
+              </div>
+              <div className="flex items-center gap-2 text-sm text-zinc-200">
+                <MapPin className="h-4 w-4 shrink-0 text-zinc-500" />
                 <span className="truncate">{event.location || "Online"}</span>
                 {event.map_link && (
-                  <a href={event.map_link} target="_blank" rel="noopener" className="inline-flex items-center gap-1 text-xs text-blue-400 hover:underline shrink-0">
+                  <a
+                    href={event.map_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex shrink-0 items-center gap-1 text-xs text-blue-400 hover:underline"
+                  >
                     Map <ExternalLink className="h-3 w-3" />
                   </a>
                 )}
               </div>
-              <div className="flex items-center gap-2 text-sm text-text">
-                <Users className="h-4 w-4 text-subtle" />
-                {event.attendees_count || 0} attending
+              <div className="flex items-center gap-2 text-sm text-zinc-200">
+                <Users className="h-4 w-4 shrink-0 text-zinc-500" />
+                {event.attendees_count || 0} going
               </div>
             </div>
 
-            {rsvpComplete ? (
-              <div className="flex flex-col items-center gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-6 text-center">
+            {registered ? (
+              <div className="mt-6 flex flex-col items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-6 text-center">
                 <CheckCircle2 className="h-8 w-8 text-emerald-500" />
-                <p className="text-sm font-semibold text-white">You&apos;re in!</p>
-                <p className="text-xs text-subtle">A confirmation has been sent to {email}.</p>
+                <p className="text-sm font-semibold text-white">You&apos;re in</p>
+                <p className="text-xs text-zinc-400">We sent the details to {email}.</p>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="mt-6 space-y-4">
                 <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-subtle mb-1">
-                    Full name
+                  <label htmlFor="name" className="mb-1 block text-sm font-medium text-zinc-400">
+                    Your name
                   </label>
                   <input
                     id="name"
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="Jane Doe"
-                    className="w-full rounded-lg border border-border bg-muted px-4 py-3 text-sm text-white placeholder-subtle outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                    placeholder="Chidi Okonkwo"
+                    className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-3 text-sm text-white placeholder-zinc-500 outline-none transition-colors focus:border-blue-500"
                   />
                 </div>
                 <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-subtle mb-1">
-                    Email address
+                  <label htmlFor="email" className="mb-1 block text-sm font-medium text-zinc-400">
+                    Email
                   </label>
                   <input
                     id="email"
@@ -141,7 +199,7 @@ export default function EventCheckoutPage({ params }: { params: { id: string } }
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@example.com"
-                    className="w-full rounded-lg border border-border bg-muted px-4 py-3 text-sm text-white placeholder-subtle outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                    className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-3 text-sm text-white placeholder-zinc-500 outline-none transition-colors focus:border-blue-500"
                     required
                   />
                 </div>
@@ -151,21 +209,24 @@ export default function EventCheckoutPage({ params }: { params: { id: string } }
                 <button
                   onClick={handleCheckout}
                   disabled={isPending}
-                  className="w-full flex justify-center items-center rounded-xl bg-primary py-4 text-sm font-bold text-white hover:bg-primary/90 disabled:opacity-70 transition-all shadow-lg shadow-primary/20"
+                  className="flex w-full items-center justify-center rounded-xl bg-blue-600 py-4 text-sm font-bold text-white shadow-lg transition-all hover:bg-blue-500 disabled:opacity-70"
                 >
                   {isPending ? (
                     <>
-                      <Loader2 className="w-5 h-5 animate-spin mr-2" /> Processing...
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Processing...
                     </>
-                  ) : event.is_free ? (
-                    "RSVP — It's Free"
+                  ) : isFree ? (
+                    "Count me in — it's free"
                   ) : (
-                    `Pay ₦${Number(event.price_naira).toLocaleString()}`
+                    `Pay ${formatKobo(priceKobo)}`
                   )}
                 </button>
-                {!event.is_free && (
-                  <p className="text-center text-xs text-subtle mt-4">Secured by Paystack 🔒</p>
-                )}
+
+                <p className="text-center text-xs text-zinc-500">
+                  {isFree
+                    ? "No account needed."
+                    : "No account needed. Card or bank transfer."}
+                </p>
               </div>
             )}
           </div>
