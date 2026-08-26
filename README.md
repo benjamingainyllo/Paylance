@@ -65,14 +65,14 @@ The goal is to go beyond a simple storefront and help creators run revenue, audi
   - Offers and Events are created as **drafts**; publishing a paid item requires a
     connected bank account, enforced in a server action *and* a database trigger
   - Payouts is bank connection + read-only settlement history
-  - Requires running `commerce-core.sql` in Supabase after `supabase-schema.sql`
+  - Requires running `setup.sql` in Supabase — one file, safe to re-run
 - Events, end-to-end:
   - Creator: create event (cover image, date/time, location, free or paid), dashboard list + detail view backed by real Supabase data
   - Public: storefront `Events` tab and standalone `/event/[id]` page for buyers
   - Checkout: real Paystack redirect flow for paid tickets, instant RSVP for free events, `/checkout/success` return page that verifies payment status
   - Backend: signature-verified webhook at `/api/webhooks/payments` settles orders
     idempotently; event revenue is derived from `orders`, never accumulated on the row
-  - Requires `commerce-core.sql` and the `PAYMENTS_PROVIDER_SECRET_KEY` (or legacy
+  - Requires `setup.sql` and the `PAYMENTS_PROVIDER_SECRET_KEY` (or legacy
     `PAYSTACK_SECRET_KEY`) + `SUPABASE_SERVICE_ROLE_KEY` environment variables
 
 ## Open question: currency and reach
@@ -154,6 +154,14 @@ To avoid looking like a copy, the app should evolve into a distinct visual ident
 - Week 2: Offer builder + upsell checkout MVP
 - Week 3: CRM tagging + broadcast flows
 - Week 4: Membership tiers + analytics v2 + experiment lab MVP
+
+## Database
+
+`setup.sql` is the only SQL file. Run the whole thing in the Supabase SQL Editor.
+It creates what's missing, skips what already exists, and migrates older
+naira columns to kobo — so it is safe to run at any time, as many times as
+you like. It replaces the previous five overlapping files, which had to be run
+in an undocumented order and failed partway through on a second run.
 
 ## Development
 
