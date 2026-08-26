@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from "uuid";
 import { headers } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { calculatePlatformFeeKobo, type Kobo, type PlatformFeeType } from "@/lib/money";
-import { getPaymentProvider } from "@/lib/payments";
+import { getPaymentProvider, isDemoPaymentMode } from "@/lib/payments";
 import { markOrderFailed, settleOrder } from "@/lib/orders";
 
 interface CheckoutPayload {
@@ -226,6 +226,51 @@ export async function verifyCheckout(reference: string) {
     console.error("Verify checkout error:", error);
     return { success: false as const, error: "Could not verify payment status." };
   }
+}
+
+/**
+ * Look up an order for the demo checkout screen.
+ * Refuses outright once a real gateway is configured.
+ */
+export async function getDemoOrder(reference: string) {
+  if (!isDemoPaymentMode()) {
+    return { success: false as const, error: "Demo checkout is disabled." };
+  }
+
+  const admin = createAdminClient();
+  const { data: order } = await admin
+    .from("orders")
+    .select("reference, item_title, item_type, gross_kobo, status, buyer_email, buyer_name")
+    .eq("reference", reference)
+    .maybeSingle();
+
+  if (!order) return { success: false as const, error: "Order not found." };
+  return { success: true as const, order };
+}
+
+/**
+ * Complete or fail a simulated payment.
+ *
+ * This exists only so the product can be demonstrated before a gateway is
+ * connected. It settles through the SAME `settleOrder` path a real provider
+ * webhook uses, so what you see in the dashboard is produced by the real
+ * code — only the money is imaginary.
+ */
+export async function completeDemoCheckout(reference: string, outcome: "paid" | "failed") {
+  // Hard stop: the moment a real key exists, this can never run.
+  if (!isDemoPaymentMode()) {
+    return { success: false as const, error: "Demo checkout is disabled." };
+  }
+
+  if (outcome === "failed") {
+    await markOrderFailed(reference, "failed");
+    return { success: true as const, status: "failed" as const };
+  }
+
+  const settled = await settleOrder({ reference, channel: "card" });
+  if (!settled.ok) return { success: false as const, error: settled.error };
+
+  return { success: true as const, status: "paid" as const };
 }
 
 interface SellableItem {

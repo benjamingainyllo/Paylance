@@ -1,6 +1,6 @@
 "use server";
 
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 
 /**
  * Public event lookup for the guest-facing page.
@@ -9,9 +9,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
  * a person with money, so the page can't render without knowing who that is.
  */
 export async function getEventById(id: string) {
-  const admin = createAdminClient();
+  const supabase = createClient();
 
-  const { data: event, error } = await admin
+  const { data: event, error } = await supabase
     .from("events")
     .select("*")
     .eq("id", id)
@@ -27,7 +27,7 @@ export async function getEventById(id: string) {
     return { success: false as const, error: "Event not found", event: null, host: null };
   }
 
-  const { data: host } = await admin
+  const { data: host } = await supabase
     .from("profiles")
     .select("handle, first_name, last_name, avatar_url")
     .eq("id", event.creator_id)

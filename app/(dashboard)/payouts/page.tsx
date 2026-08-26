@@ -2,11 +2,12 @@
 
 import { useCallback, useEffect, useState } from "react";
 import {
-  Landmark, ShieldCheck, Loader2, CheckCircle2, ArrowRight, Info, Inbox,
+  Landmark, ShieldCheck, Loader2, CheckCircle2, ArrowRight, Info, Inbox, TriangleAlert,
 } from "lucide-react";
 import { formatKobo } from "@/lib/money";
 import {
   connectBankAccount,
+  getPaymentMode,
   getPayoutAccount,
   listBanks,
   resolveBankAccount,
@@ -25,6 +26,7 @@ export default function PayoutsPage() {
   const [settlements, setSettlements] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [demoMode, setDemoMode] = useState(false);
 
   const [banks, setBanks] = useState<{ name: string; code: string }[]>([]);
   const [bankCode, setBankCode] = useState("");
@@ -51,6 +53,7 @@ export default function PayoutsPage() {
 
   useEffect(() => {
     load();
+    getPaymentMode().then((m) => setDemoMode(m.demo));
   }, [load]);
 
   const isConnected = account?.status === "active" && account?.provider_subaccount_id;
@@ -141,6 +144,20 @@ export default function PayoutsPage() {
           >
             Retry
           </button>
+        </div>
+      )}
+
+      {demoMode && (
+        <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
+          <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+          <div>
+            <p className="text-sm font-bold text-amber-500">Demo mode — no payment gateway connected</p>
+            <p className="mt-1 text-xs text-subtle">
+              You can connect a pretend bank account here so the rest of the product works
+              end to end. It is not a real account and no money can move. When a real gateway
+              is set up, this becomes a genuine bank connection with no other change.
+            </p>
+          </div>
         </div>
       )}
 

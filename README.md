@@ -155,6 +155,22 @@ To avoid looking like a copy, the app should evolve into a distinct visual ident
 - Week 3: CRM tagging + broadcast flows
 - Week 4: Membership tiers + analytics v2 + experiment lab MVP
 
+## Demo mode (no payment gateway required)
+
+With no payment provider key set, the app runs on a mock provider in
+`lib/payments/mock.ts`. Everything works end to end — connect a pretend bank,
+publish paid items, run a checkout, watch the order appear in Revenue — but no
+money moves and nothing talks to a processor. Checkout redirects to
+`/checkout/demo`, where a payment can be completed or failed by hand; it then
+settles through the same `settleOrder` path a real webhook uses.
+
+Demo mode turns itself off the moment `PAYMENTS_PROVIDER_SECRET_KEY` (or
+`PAYSTACK_SECRET_KEY`) exists. The demo checkout actions refuse to run once a
+real key is present, so this cannot be left on by accident.
+
+Still required either way: `SUPABASE_SERVICE_ROLE_KEY`, which the server uses
+to record orders and connect payout accounts.
+
 ## Database
 
 `setup.sql` is the only SQL file. Run the whole thing in the Supabase SQL Editor.

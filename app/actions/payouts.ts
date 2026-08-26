@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getPaymentProvider } from "@/lib/payments";
+import { getPaymentProvider, isDemoPaymentMode } from "@/lib/payments";
 
 /**
  * Payouts here means ONE thing: connecting the creator's own bank account so
@@ -12,6 +12,11 @@ import { getPaymentProvider } from "@/lib/payments";
  * Paylance never holds the money, so there is deliberately no balance,
  * no withdrawal and no transfer anywhere in this file.
  */
+
+/** Whether the app is running without a real payment gateway. */
+export async function getPaymentMode() {
+  return { demo: isDemoPaymentMode() };
+}
 
 export async function getPayoutAccount() {
   const supabase = createClient();
