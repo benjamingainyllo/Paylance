@@ -85,7 +85,10 @@ The goal is to go beyond a simple storefront and help creators run revenue, audi
 
 ### 2) Memberships & Recurring Revenue
 
-- Monthly/yearly subscriptions
+A product a creator sells to *their own* audience — not a Paylance plan.
+Paylance itself has no subscription tiers; we earn only from transaction fees.
+
+- Monthly/yearly subscriptions creators offer their audience
 - Tiered access and gated content
 - Churn and retention analytics
 

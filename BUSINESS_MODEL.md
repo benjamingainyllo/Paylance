@@ -7,20 +7,33 @@ Paylance is a vertically integrated "Business-in-a-Box" platform designed for hi
 
 ## 2. Revenue Streams (How We Make Money)
 
-### A. Transaction Commissions (Primary)
-The platform acts as the financial infrastructure for all creator transactions.
-*   **Ticket Sales**: 2.5% - 5% fee on every event ticket sold.
-*   **Offer Sales**: Percentage cut of digital products, consulting sessions, or specialized offers.
-*   **Storefront Purchases**: Commission on direct-to-audience sales.
+### A. Transaction Fees (the only revenue stream)
+The platform is the financial infrastructure for creator transactions. We take a
+cut of each sale at the moment it happens — collected as the platform's share of
+a split payment, never as a bill or a subscription.
 
-### B. SaaS Subscriptions (Recurring)
-Premium features for established creators who need more power.
-*   **Pro Tier ($19/mo)**: Advanced automations, custom domains, and CRM (Audience) management tools.
-*   **Business Tier ($49/mo)**: Multi-member teams, white-label storefronts, and deep API integrations.
+*   **Ticket Sales**: a percentage of every event ticket sold.
+*   **Offer Sales**: a percentage of digital products, consulting sessions and other offers.
+*   **Storefront Purchases**: same rate, same rail.
 
-### C. Fintech Services
-*   **Payout Fees**: Small processing fees for withdrawing funds to local bank accounts.
-*   **Instant Payouts**: Premium fee for creators who want access to their earnings immediately.
+Creators pay nothing to sign up, nothing monthly, and nothing when they don't sell.
+
+**Open decision — the actual rate.** The schema carries `platform_fee_type` and
+`platform_fee_value` per creator so this can change without a migration. The code
+currently defaults to 9% (900 basis points). For reference, Tix.Africa charges
+8% + ₦100 per ticket. This number needs to be settled before launch, and the
+landing page deliberately does not quote a figure until it is.
+
+### B. Explicitly NOT revenue streams
+
+These are ruled out by the no-custody constraint, not by preference. Paylance
+never holds creator funds — the payment provider splits at transaction time and
+settles the creator's share directly to their own bank account. Anything that
+requires us to sit on money in between is off the table:
+
+*   ~~Payout / withdrawal fees~~ — there is no withdrawal; money never reaches us.
+*   ~~Instant payout premiums~~ — same reason.
+*   ~~SaaS subscription tiers~~ — decided against. No monthly plans.
 
 ---
 
