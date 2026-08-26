@@ -5,154 +5,132 @@ import Link from "next/link";
 import {
   Layers3,
   ArrowRight,
-  Store,
-  Ticket,
-  Users,
-  BarChart3,
-  Wallet,
-  Sparkles,
   Check,
-  Menu,
   X,
+  Menu,
+  Link2,
+  Users,
+  Landmark,
+  Store,
+  BarChart3,
+  Sparkles,
   ShieldCheck,
-  Zap,
+  MessageCircle,
 } from "lucide-react";
 import { useAuth } from "@/components/auth/auth-provider";
 
-const FEATURES = [
-  {
-    icon: Store,
-    title: "Your own storefront",
-    body: "A branded page at paylance.com/yourname where your audience can browse and buy everything you sell — no website needed.",
-    accent: "text-blue-600",
-    bg: "bg-blue-500/10",
-  },
-  {
-    icon: Sparkles,
-    title: "Sell digital offers",
-    body: "Ebooks, presets, templates, coaching calls. Create an offer in a minute and share the link anywhere.",
-    accent: "text-purple-600",
-    bg: "bg-purple-500/10",
-  },
-  {
-    icon: Ticket,
-    title: "Events & ticketing",
-    body: "Host workshops, meetups and virtual sessions. Sell tickets or take free RSVPs, and track who's coming.",
-    accent: "text-orange-600",
-    bg: "bg-orange-500/10",
-  },
-  {
-    icon: Users,
-    title: "Own your audience",
-    body: "Every buyer and lead lands in your CRM. Tag them, segment them, and reach them directly — no algorithm in the way.",
-    accent: "text-emerald-600",
-    bg: "bg-emerald-500/10",
-  },
-  {
-    icon: BarChart3,
-    title: "Revenue intelligence",
-    body: "See what actually earns. Track sales, ticket revenue and growth over time in one clean dashboard.",
-    accent: "text-sky-600",
-    bg: "bg-sky-500/10",
-  },
-  {
-    icon: Wallet,
-    title: "Get paid in Naira",
-    body: "Payments run on Paystack and settle to your local bank account. Transparent fees, no surprises.",
-    accent: "text-amber-600",
-    bg: "bg-amber-500/10",
-  },
+/**
+ * The events wedge, not the OS pitch.
+ *
+ * "Sell your digital products online" is a sentence competitors already own.
+ * "Collect money for your event without the screenshot wahala" is unowned, so
+ * the page leads with that and introduces the wider product further down.
+ */
+
+const BEFORE = [
+  "“Send me your account details”",
+  "17 transfer screenshots in the group chat",
+  "Ticking names off a list by hand",
+  "Chasing the four people who never paid",
+  "No idea what you actually made",
+];
+
+const AFTER = [
+  "One link you share anywhere",
+  "Guests pay by card or bank transfer",
+  "A live list of who's paid",
+  "Money straight into your bank account",
+  "Exact totals, the moment they land",
 ];
 
 const STEPS = [
   {
     number: "01",
-    title: "Create your storefront",
-    body: "Sign up, pick your handle, and your public page is live in under two minutes.",
+    title: "Set up your event",
+    body: "Name it, pick the date and place, set a price — or make it free. Takes about two minutes.",
   },
   {
     number: "02",
-    title: "Add offers and events",
-    body: "List a digital product or set up a ticketed event. Set your price in Naira, or make it free.",
+    title: "Share one link",
+    body: "WhatsApp status, IG bio, the group chat. Anywhere you'd normally paste your account number.",
   },
   {
     number: "03",
-    title: "Share and get paid",
-    body: "Drop your link in your bio. Payments land through Paystack and your dashboard updates in real time.",
+    title: "Get paid",
+    body: "Guests pay however they like. Your money settles directly to your bank — it never sits with us.",
   },
 ];
 
-const PLANS = [
+const GUEST_TRUST = [
   {
-    name: "Starter",
-    price: "Free",
-    cadence: "",
-    description: "Everything you need to make your first sale.",
-    features: [
-      "Branded storefront",
-      "Unlimited digital offers",
-      "Events & ticketing",
-      "Audience CRM",
-      "Revenue dashboard",
-    ],
-    note: "Transaction fee applies on sales",
-    cta: "Start free",
-    highlighted: false,
+    icon: X,
+    title: "No account, no app",
+    body: "Your guests tap the link and pay. No sign-up, no download, no password to forget.",
   },
   {
-    name: "Pro",
-    price: "$19",
-    cadence: "/month",
-    description: "For creators turning content into steady income.",
-    features: [
-      "Everything in Starter",
-      "Advanced automations",
-      "Custom domain",
-      "Broadcast campaigns",
-      "Priority support",
-    ],
-    note: "Lower transaction fee",
-    cta: "Go Pro",
-    highlighted: true,
+    icon: Users,
+    title: "They see who's coming",
+    body: "Real names of people who already paid. The strongest signal a link is legit, not a scam.",
   },
   {
-    name: "Business",
-    price: "$49",
-    cadence: "/month",
-    description: "For creator teams running at scale.",
-    features: [
-      "Everything in Pro",
-      "Multi-member teams",
-      "White-label storefront",
-      "Deep API integrations",
-      "Instant payouts",
-    ],
-    note: "Lowest transaction fee",
-    cta: "Scale up",
-    highlighted: false,
+    icon: ShieldCheck,
+    title: "Your face on the page",
+    body: "Your name, photo and profile are front and centre. Guests are trusting you, not a logo.",
+  },
+  {
+    icon: MessageCircle,
+    title: "Looks right in WhatsApp",
+    body: "Cover art, title, date and price show up in the preview before the page even loads.",
+  },
+];
+
+const OS_FEATURES = [
+  {
+    icon: Store,
+    title: "Sell more than tickets",
+    body: "Ebooks, presets, courses, consulting sessions — same link, same checkout, same bank account.",
+  },
+  {
+    icon: Users,
+    title: "Keep your buyers",
+    body: "Everyone who pays becomes a contact you own. Not a follower on someone else's platform.",
+  },
+  {
+    icon: BarChart3,
+    title: "See what actually earns",
+    body: "Every ticket and every sale in one ledger. Gross, fees, and exactly what hit your account.",
+  },
+  {
+    icon: Landmark,
+    title: "Money you can trace",
+    body: "Connect your bank once. Every payout is listed, with nothing held in between.",
   },
 ];
 
 const FAQS = [
   {
-    q: "How do I get paid?",
-    a: "Payments are processed through Paystack and settle directly into your Nigerian bank account. You can track every transaction from your Revenue dashboard.",
+    q: "Do my guests need to create an account?",
+    a: "No. They tap your link, enter their name and email, and pay. That's the whole thing — no sign-up, no app.",
   },
   {
-    q: "What does Paylance cost?",
-    a: "Starting is free — we take a small percentage of each sale. If you want advanced automations, a custom domain or team access, Pro and Business plans reduce that percentage and unlock more tools.",
+    q: "How do I get my money?",
+    a: "It goes straight to your own bank account. Payments are split at the moment someone pays, so your share settles directly to you — Paylance never holds it.",
   },
   {
-    q: "Do I need a website?",
-    a: "No. Your Paylance storefront is your website. You get a shareable link that works in any bio, and you can point a custom domain at it on Pro.",
+    q: "How can guests pay?",
+    a: "Card or bank transfer, whichever they prefer. Everything runs on Paystack.",
   },
   {
-    q: "Can I sell both products and event tickets?",
-    a: "Yes. Digital offers and ticketed events live side by side on the same storefront, and both feed into the same revenue and audience data.",
+    q: "Can I run a free event?",
+    a: "Yes. Free events work the same way — you just get RSVPs instead of payments, and you still see exactly who's coming.",
   },
   {
-    q: "Who is Paylance built for?",
-    a: "Creators, educators, artists and event hosts in Africa who want to run a real business instead of juggling five different tools.",
+    q: "What does it cost?",
+    a: "Nothing to start and no monthly fee. We take a small percentage when you actually get paid, so if you don't sell anything, you don't pay anything.",
+  },
+  {
+    q: "Is this only for parties?",
+    a: "That's where most people start, but the same link works for workshops, classes, listening parties, game nights — anything where money changes hands.",
   },
 ];
 
@@ -162,11 +140,13 @@ export default function LandingPage() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => setMounted(true), []);
-
   const isSignedIn = mounted && !!user;
 
+  const primaryHref = isSignedIn ? "/events" : "/login";
+  const primaryLabel = isSignedIn ? "Go to dashboard" : "Create your event";
+
   return (
-    <main className="theme-light min-h-screen bg-background text-text overflow-x-hidden">
+    <main className="theme-light min-h-screen overflow-x-hidden bg-background text-text">
       {/* ---------------- Nav ---------------- */}
       <header className="sticky top-0 z-50 border-b border-border/60 bg-background/80 backdrop-blur-xl">
         <nav className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5">
@@ -178,14 +158,14 @@ export default function LandingPage() {
           </Link>
 
           <div className="hidden items-center gap-8 md:flex">
-            <a href="#features" className="text-sm text-subtle transition-colors hover:text-text">
-              Features
-            </a>
             <a href="#how-it-works" className="text-sm text-subtle transition-colors hover:text-text">
               How it works
             </a>
-            <a href="#pricing" className="text-sm text-subtle transition-colors hover:text-text">
-              Pricing
+            <a href="#guests" className="text-sm text-subtle transition-colors hover:text-text">
+              For your guests
+            </a>
+            <a href="#more" className="text-sm text-subtle transition-colors hover:text-text">
+              Beyond tickets
             </a>
             <a href="#faq" className="text-sm text-subtle transition-colors hover:text-text">
               FAQ
@@ -193,26 +173,17 @@ export default function LandingPage() {
           </div>
 
           <div className="hidden items-center gap-3 md:flex">
-            {isSignedIn ? (
-              <Link
-                href="/overview"
-                className="flex h-9 items-center gap-2 rounded-lg bg-text px-4 text-xs font-semibold text-background transition-transform hover:scale-[1.03] active:scale-[0.98]"
-              >
-                Go to dashboard <ArrowRight className="h-3.5 w-3.5" />
+            {!isSignedIn && (
+              <Link href="/login" className="text-sm font-medium text-subtle transition-colors hover:text-text">
+                Sign in
               </Link>
-            ) : (
-              <>
-                <Link href="/login" className="text-sm font-medium text-subtle transition-colors hover:text-text">
-                  Sign in
-                </Link>
-                <Link
-                  href="/login"
-                  className="flex h-9 items-center gap-2 rounded-lg bg-text px-4 text-xs font-semibold text-background transition-transform hover:scale-[1.03] active:scale-[0.98]"
-                >
-                  Get started <ArrowRight className="h-3.5 w-3.5" />
-                </Link>
-              </>
             )}
+            <Link
+              href={primaryHref}
+              className="flex h-9 items-center gap-2 rounded-lg bg-text px-4 text-xs font-semibold text-background transition-transform hover:scale-[1.03] active:scale-[0.98]"
+            >
+              {isSignedIn ? "Dashboard" : "Get started"} <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
           </div>
 
           <button
@@ -227,23 +198,21 @@ export default function LandingPage() {
         {menuOpen && (
           <div className="border-t border-border bg-background px-5 py-4 md:hidden">
             <div className="flex flex-col gap-4">
-              <a href="#features" onClick={() => setMenuOpen(false)} className="text-sm text-subtle">
-                Features
-              </a>
-              <a href="#how-it-works" onClick={() => setMenuOpen(false)} className="text-sm text-subtle">
-                How it works
-              </a>
-              <a href="#pricing" onClick={() => setMenuOpen(false)} className="text-sm text-subtle">
-                Pricing
-              </a>
-              <a href="#faq" onClick={() => setMenuOpen(false)} className="text-sm text-subtle">
-                FAQ
-              </a>
+              {[
+                ["#how-it-works", "How it works"],
+                ["#guests", "For your guests"],
+                ["#more", "Beyond tickets"],
+                ["#faq", "FAQ"],
+              ].map(([href, label]) => (
+                <a key={href} href={href} onClick={() => setMenuOpen(false)} className="text-sm text-subtle">
+                  {label}
+                </a>
+              ))}
               <Link
-                href={isSignedIn ? "/overview" : "/login"}
+                href={primaryHref}
                 className="flex h-10 items-center justify-center rounded-lg bg-text text-xs font-semibold text-background"
               >
-                {isSignedIn ? "Go to dashboard" : "Get started"}
+                {isSignedIn ? "Dashboard" : "Get started"}
               </Link>
             </div>
           </div>
@@ -251,8 +220,7 @@ export default function LandingPage() {
       </header>
 
       {/* ---------------- Hero ---------------- */}
-      <section className="relative overflow-hidden px-5 pt-20 pb-24 sm:pt-28 sm:pb-32">
-        {/* Ambient glow */}
+      <section className="relative overflow-hidden px-5 pb-20 pt-20 sm:pt-28">
         <div
           aria-hidden
           className="pointer-events-none absolute left-1/2 top-0 h-[420px] w-[820px] max-w-[140vw] -translate-x-1/2 rounded-full opacity-[0.16] blur-[110px]"
@@ -261,31 +229,30 @@ export default function LandingPage() {
 
         <div className="relative mx-auto max-w-3xl text-center">
           <div className="mx-auto mb-6 flex w-fit items-center gap-2 rounded-full border border-border bg-surface/70 px-4 py-1.5 backdrop-blur-sm">
-            <Zap className="h-3.5 w-3.5 fill-current text-blue-500" />
-            <span className="text-xs font-medium text-subtle">The creator business OS for Africa</span>
+            <span className="text-xs font-medium text-subtle">Built for Nigeria 🇳🇬</span>
           </div>
 
           <h1 className="text-4xl font-bold leading-[1.08] tracking-tight sm:text-6xl">
-            Turn your audience
+            Stop chasing transfers
             <br />
-            into a{" "}
+            in your{" "}
             <span className="bg-gradient-to-r from-blue-600 via-sky-600 to-emerald-600 bg-clip-text text-transparent">
-              real business
+              group chat
             </span>
             .
           </h1>
 
           <p className="mx-auto mt-6 max-w-xl text-base leading-relaxed text-subtle sm:text-lg">
-            Sell digital products, host paid events, grow your audience and get paid in Naira — all
-            from one dashboard. No website, no code, no five separate tools.
+            Share one link for your event. Guests pay by card or transfer, you see exactly who&apos;s
+            coming and who&apos;s paid, and the money lands straight in your bank account.
           </p>
 
           <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link
-              href={isSignedIn ? "/overview" : "/login"}
+              href={primaryHref}
               className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-text px-7 text-sm font-bold text-background shadow-lg transition-transform hover:scale-[1.03] active:scale-[0.98] sm:w-auto"
             >
-              {isSignedIn ? "Go to dashboard" : "Create your storefront"}
+              {primaryLabel}
               <ArrowRight className="h-4 w-4" />
             </Link>
             <a
@@ -298,57 +265,140 @@ export default function LandingPage() {
 
           <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-subtle">
             <span className="flex items-center gap-1.5">
-              <Check className="h-3.5 w-3.5 text-emerald-500" /> Free to start
+              <Check className="h-3.5 w-3.5 text-emerald-600" /> Free to start
             </span>
             <span className="flex items-center gap-1.5">
-              <Check className="h-3.5 w-3.5 text-emerald-500" /> No monthly fee to sell
+              <Check className="h-3.5 w-3.5 text-emerald-600" /> Guests need no account
             </span>
             <span className="flex items-center gap-1.5">
-              <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" /> Secured by Paystack
+              <Check className="h-3.5 w-3.5 text-emerald-600" /> Paid straight to your bank
             </span>
-          </div>
-        </div>
-
-        {/* Replaces-these strip */}
-        <div className="relative mx-auto mt-20 max-w-3xl">
-          <p className="text-center text-[11px] font-semibold uppercase tracking-[0.2em] text-subtle">
-            Replaces the tools you&apos;re duct-taping together
-          </p>
-          <div className="mt-5 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm font-semibold text-subtle/60">
-            <span>Link in bio</span>
-            <span className="text-subtle/30">•</span>
-            <span>Digital storefront</span>
-            <span className="text-subtle/30">•</span>
-            <span>Event ticketing</span>
-            <span className="text-subtle/30">•</span>
-            <span>Email list</span>
-            <span className="text-subtle/30">•</span>
-            <span>Payment links</span>
           </div>
         </div>
       </section>
 
-      {/* ---------------- Features ---------------- */}
-      <section id="features" className="border-t border-border/60 px-5 py-24">
-        <div className="mx-auto max-w-6xl">
+      {/* ---------------- Before / after ---------------- */}
+      <section className="border-t border-border/60 px-5 py-24">
+        <div className="mx-auto max-w-5xl">
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-              Everything your business needs
-            </h2>
+            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">You know the wahala</h2>
             <p className="mt-4 text-base text-subtle">
-              One place to sell, host, track and get paid — instead of stitching together tools that
-              were never built for you.
+              Every time money is involved, a good idea turns into admin work.
             </p>
           </div>
 
-          <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {FEATURES.map((feature) => (
+          <div className="mt-14 grid gap-5 md:grid-cols-2">
+            <div className="rounded-2xl border border-border bg-surface p-7">
+              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-subtle">
+                The usual way
+              </p>
+              <ul className="mt-6 space-y-4">
+                {BEFORE.map((item) => (
+                  <li key={item} className="flex items-start gap-3 text-sm text-subtle">
+                    <X className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="rounded-2xl border border-blue-500/40 bg-surface p-7 shadow-xl shadow-blue-500/5">
+              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-blue-600">
+                With Paylance
+              </p>
+              <ul className="mt-6 space-y-4">
+                {AFTER.map((item) => (
+                  <li key={item} className="flex items-start gap-3 text-sm font-medium text-text">
+                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ---------------- How it works ---------------- */}
+      <section id="how-it-works" className="border-t border-border/60 px-5 py-24">
+        <div className="mx-auto max-w-6xl">
+          <div className="mx-auto max-w-2xl text-center">
+            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Three steps, one link</h2>
+            <p className="mt-4 text-base text-subtle">
+              You could be collecting money for your next event before the end of the day.
+            </p>
+          </div>
+
+          <div className="mt-14 grid gap-6 md:grid-cols-3">
+            {STEPS.map((step) => (
+              <div key={step.number} className="rounded-2xl border border-border bg-surface p-7">
+                <span className="text-sm font-bold text-blue-600">{step.number}</span>
+                <h3 className="mt-4 text-lg font-bold">{step.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-subtle">{step.body}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mx-auto mt-12 flex max-w-2xl items-center gap-3 rounded-2xl border border-border bg-muted/50 px-5 py-4">
+            <Link2 className="h-4 w-4 shrink-0 text-blue-600" />
+            <p className="text-sm text-subtle">
+              Your link looks like <span className="font-semibold text-text">paylance.me/yourname</span> —
+              short enough to read out loud.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* ---------------- Guest experience / trust ---------------- */}
+      <section id="guests" className="border-t border-border/60 px-5 py-24">
+        <div className="mx-auto max-w-6xl">
+          <div className="mx-auto max-w-2xl text-center">
+            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+              Your guests won&apos;t think it&apos;s a scam
+            </h2>
+            <p className="mt-4 text-base text-subtle">
+              Nobody in Nigeria taps a payment link without thinking twice. Every event page is built
+              to answer that hesitation before it costs you a guest.
+            </p>
+          </div>
+
+          <div className="mt-14 grid gap-5 sm:grid-cols-2">
+            {GUEST_TRUST.map((item) => (
               <div
-                key={feature.title}
-                className="group rounded-2xl border border-border bg-surface p-6 transition-all hover:-translate-y-1 hover:border-subtle/30"
+                key={item.title}
+                className="rounded-2xl border border-border bg-surface p-6 transition-all hover:-translate-y-1 hover:border-subtle/30"
               >
-                <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${feature.bg}`}>
-                  <feature.icon className={`h-5 w-5 ${feature.accent}`} />
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-500/10">
+                  <item.icon className="h-5 w-5 text-blue-600" />
+                </div>
+                <h3 className="mt-5 text-base font-bold">{item.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-subtle">{item.body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ---------------- The rest of the product ---------------- */}
+      <section id="more" className="border-t border-border/60 px-5 py-24">
+        <div className="mx-auto max-w-6xl">
+          <div className="mx-auto max-w-2xl text-center">
+            <div className="mx-auto mb-5 flex w-fit items-center gap-2 rounded-full border border-border bg-surface px-4 py-1.5">
+              <Sparkles className="h-3.5 w-3.5 text-blue-600" />
+              <span className="text-xs font-medium text-subtle">When you&apos;re ready</span>
+            </div>
+            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">It doesn&apos;t stop at tickets</h2>
+            <p className="mt-4 text-base text-subtle">
+              Once your bank is connected and money is moving, selling anything else is one click —
+              not a whole new setup.
+            </p>
+          </div>
+
+          <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {OS_FEATURES.map((feature) => (
+              <div key={feature.title} className="rounded-2xl border border-border bg-surface p-6">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-500/10">
+                  <feature.icon className="h-5 w-5 text-emerald-600" />
                 </div>
                 <h3 className="mt-5 text-base font-bold">{feature.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-subtle">{feature.body}</p>
@@ -358,85 +408,38 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ---------------- How it works ---------------- */}
-      <section id="how-it-works" className="border-t border-border/60 px-5 py-24">
-        <div className="mx-auto max-w-6xl">
-          <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Live in three steps</h2>
-            <p className="mt-4 text-base text-subtle">
-              You could be taking your first payment before the end of the day.
-            </p>
-          </div>
-
-          <div className="mt-14 grid gap-6 md:grid-cols-3">
-            {STEPS.map((step) => (
-              <div key={step.number} className="relative rounded-2xl border border-border bg-surface p-7">
-                <span className="text-sm font-bold text-blue-600">{step.number}</span>
-                <h3 className="mt-4 text-lg font-bold">{step.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-subtle">{step.body}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* ---------------- Pricing ---------------- */}
       <section id="pricing" className="border-t border-border/60 px-5 py-24">
-        <div className="mx-auto max-w-6xl">
-          <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Pricing that grows with you</h2>
-            <p className="mt-4 text-base text-subtle">
-              Start free and only pay a percentage when you actually earn. Upgrade when you want more
-              power and lower fees.
+        <div className="mx-auto max-w-3xl">
+          <div className="rounded-3xl border border-border bg-surface p-10 text-center">
+            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+              You only pay when you get paid
+            </h2>
+            <p className="mx-auto mt-4 max-w-lg text-base text-subtle">
+              Nothing to sign up. No monthly fee. We take a small percentage of each sale — so if
+              nobody buys, it costs you nothing.
             </p>
-          </div>
 
-          <div className="mt-14 grid gap-6 lg:grid-cols-3">
-            {PLANS.map((plan) => (
-              <div
-                key={plan.name}
-                className={`relative flex flex-col rounded-2xl border p-7 ${
-                  plan.highlighted
-                    ? "border-blue-500/50 bg-surface shadow-xl shadow-blue-500/5"
-                    : "border-border bg-surface"
-                }`}
-              >
-                {plan.highlighted && (
-                  <span className="absolute -top-3 left-7 rounded-full bg-blue-600 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
-                    Most popular
-                  </span>
-                )}
-
-                <h3 className="text-sm font-bold uppercase tracking-wider text-subtle">{plan.name}</h3>
-                <div className="mt-4 flex items-baseline gap-1">
-                  <span className="text-4xl font-bold tracking-tight">{plan.price}</span>
-                  {plan.cadence && <span className="text-sm text-subtle">{plan.cadence}</span>}
+            <div className="mx-auto mt-8 grid max-w-lg gap-3 text-left sm:grid-cols-2">
+              {[
+                "No subscription",
+                "No setup fee",
+                "Unlimited events",
+                "Free events stay free",
+              ].map((item) => (
+                <div key={item} className="flex items-center gap-2.5 text-sm">
+                  <Check className="h-4 w-4 shrink-0 text-emerald-600" />
+                  {item}
                 </div>
-                <p className="mt-3 text-sm text-subtle">{plan.description}</p>
+              ))}
+            </div>
 
-                <ul className="mt-6 flex-1 space-y-3">
-                  {plan.features.map((feature) => (
-                    <li key={feature} className="flex items-start gap-2.5 text-sm text-text">
-                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-
-                <p className="mt-6 text-xs text-subtle">{plan.note}</p>
-
-                <Link
-                  href="/login"
-                  className={`mt-4 flex h-11 items-center justify-center rounded-xl text-sm font-bold transition-transform hover:scale-[1.02] active:scale-[0.98] ${
-                    plan.highlighted
-                      ? "bg-blue-600 text-white"
-                      : "border border-border bg-muted text-text"
-                  }`}
-                >
-                  {plan.cta}
-                </Link>
-              </div>
-            ))}
+            <Link
+              href={primaryHref}
+              className="mx-auto mt-9 flex h-12 w-full max-w-xs items-center justify-center gap-2 rounded-xl bg-text text-sm font-bold text-background transition-transform hover:scale-[1.03] active:scale-[0.98]"
+            >
+              {primaryLabel} <ArrowRight className="h-4 w-4" />
+            </Link>
           </div>
         </div>
       </section>
@@ -476,18 +479,16 @@ export default function LandingPage() {
           />
           <div className="relative">
             <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-              Your audience is ready to buy.
+              What are you planning?
             </h2>
             <p className="mx-auto mt-4 max-w-lg text-base text-subtle">
-              Set up your storefront in minutes and start earning from the people who already follow
-              you.
+              Set it up now, share the link tonight, and let people pay you properly.
             </p>
             <Link
-              href={isSignedIn ? "/overview" : "/login"}
+              href={primaryHref}
               className="mx-auto mt-8 flex h-12 w-full max-w-xs items-center justify-center gap-2 rounded-xl bg-text text-sm font-bold text-background shadow-lg transition-transform hover:scale-[1.03] active:scale-[0.98]"
             >
-              {isSignedIn ? "Go to dashboard" : "Get started free"}
-              <ArrowRight className="h-4 w-4" />
+              {primaryLabel} <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
         </div>
@@ -504,8 +505,8 @@ export default function LandingPage() {
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-x-7 gap-y-2">
-            <a href="#features" className="text-xs text-subtle transition-colors hover:text-text">
-              Features
+            <a href="#how-it-works" className="text-xs text-subtle transition-colors hover:text-text">
+              How it works
             </a>
             <a href="#pricing" className="text-xs text-subtle transition-colors hover:text-text">
               Pricing
@@ -519,7 +520,7 @@ export default function LandingPage() {
           </div>
 
           <p className="text-xs text-subtle">
-            © {new Date().getFullYear()} Paylance. Built for African creators.
+            © {new Date().getFullYear()} Paylance. Made for Nigerian creators.
           </p>
         </div>
       </footer>
