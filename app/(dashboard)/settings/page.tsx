@@ -1,20 +1,26 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
-import { TopFilters } from "@/components/dashboard/top-filters";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { createClient } from "@/lib/supabase/client";
+import { checkHandle, normalizeHandle } from "@/lib/handle";
 import { toast } from "sonner";
-import { Camera, Loader2, User } from "lucide-react";
+import {
+  Camera, Loader2, User, Check, X, Copy, ExternalLink, Lock, Eye, EyeOff, LogOut,
+} from "lucide-react";
+
+const CATEGORIES = [
+  "Creator", "Educator", "Musician", "Designer", "Writer",
+  "Photographer", "Coach", "Developer", "Other",
+];
 
 export default function SettingsPage() {
-  const { user, profile, refreshProfile } = useAuth();
+  const { user, profile, refreshProfile, signOut } = useAuth();
   const supabase = createClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [activeTab, setActiveTab] = useState<"profile" | "security">("profile");
+  const [tab, setTab] = useState<"profile" | "security">("profile");
 
-  // Profile Form State
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [handle, setHandle] = useState("");
@@ -23,343 +29,388 @@ export default function SettingsPage() {
   const [location, setLocation] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
-  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
 
-  // Security Form State
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [isSavingPassword, setIsSavingPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
 
   useEffect(() => {
-    if (profile) {
-      setFirstName(profile.first_name || "");
-      setLastName(profile.last_name || "");
-      setHandle(profile.handle || "");
-      setBio(profile.bio || "");
-      setCategory(profile.category || "");
-      setLocation(profile.location || "");
-      setAvatarUrl(profile.avatar_url || null);
-    }
+    if (!profile) return;
+    setFirstName(profile.first_name || "");
+    setLastName(profile.last_name || "");
+    setHandle(profile.handle || "");
+    setBio(profile.bio || "");
+    setCategory(profile.category || "");
+    setLocation(profile.location || "");
+    setAvatarUrl(profile.avatar_url || null);
   }, [profile]);
 
-  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setPhotoFile(file);
-      const url = URL.createObjectURL(file);
-      setAvatarUrl(url);
-    }
+  const handleState = handle ? checkHandle(handle) : { ok: true as const };
+  const handleUnchanged = normalizeHandle(handle) === (profile?.handle || "");
+  const publicUrl =
+    typeof window !== "undefined" && handle ? `${window.location.origin}/${normalizeHandle(handle)}` : "";
+
+  const onPhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPhotoFile(file);
+    setAvatarUrl(URL.createObjectURL(file));
   };
 
-  const handleUpdateProfile = async () => {
+  const saveProfile = async () => {
     if (!user) return;
-    setIsSavingProfile(true);
+
+    if (handle && !handleState.ok) {
+      toast.error(handleState.reason!);
+      return;
+    }
+
+    setSavingProfile(true);
 
     try {
-      console.log("Starting save profile...");
-      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Request timed out after 10 seconds")), 10000));
-      
-      await Promise.race([
-        (async () => {
-          let finalAvatarUrl = profile?.avatar_url;
+      let finalAvatarUrl = profile?.avatar_url ?? null;
 
-          if (photoFile) {
-            console.log("Uploading photo...");
-            const fileExt = photoFile.name.split(".").pop();
-            const filePath = `${user.id}/avatar.${fileExt}`;
+      if (photoFile) {
+        const ext = photoFile.name.split(".").pop();
+        const path = `${user.id}/avatar.${ext}`;
+        const { error: uploadError } = await supabase.storage
+          .from("avatars")
+          .upload(path, photoFile, { upsert: true });
 
-            const { error: uploadError } = await supabase.storage
-              .from("avatars")
-              .upload(filePath, photoFile, { upsert: true });
+        if (uploadError) throw new Error(`Couldn't upload your photo: ${uploadError.message}`);
 
-            if (uploadError) {
-              throw new Error("Avatar upload failed: " + uploadError.message);
-            }
+        // Bust the CDN cache — the path is stable, so the URL must change.
+        finalAvatarUrl = `${supabase.storage.from("avatars").getPublicUrl(path).data.publicUrl}?v=${Date.now()}`;
+      }
 
-            const { data: publicUrlData } = supabase.storage
-              .from("avatars")
-              .getPublicUrl(filePath);
-            finalAvatarUrl = publicUrlData.publicUrl;
-            console.log("Photo uploaded!");
-          }
+      const { error } = await supabase.from("profiles").upsert({
+        id: user.id,
+        first_name: firstName || null,
+        last_name: lastName || null,
+        handle: handle ? normalizeHandle(handle) : null,
+        bio: bio || null,
+        category: category || null,
+        location: location || null,
+        avatar_url: finalAvatarUrl,
+      });
 
-          const profileData = {
-            id: user.id,
-            first_name: firstName || null,
-            last_name: lastName || null,
-            handle: handle ? handle.toLowerCase() : null,
-            bio: bio || null,
-            category: category || null,
-            location: location || null,
-            avatar_url: finalAvatarUrl,
-          };
+      if (error) {
+        if (error.code === "23505") throw new Error("That handle is already taken. Try another.");
+        throw new Error(error.message);
+      }
 
-          console.log("Saving profile to DB...", profileData);
-          const { error: saveError } = await supabase
-            .from("profiles")
-            .upsert(profileData);
-
-          if (saveError) {
-            console.error("Save error:", saveError);
-            if (saveError.code === "23505") {
-              throw new Error("That handle is already taken. Try another one.");
-            }
-            throw new Error("Failed to save profile: " + saveError.message);
-          }
-
-          console.log("Refreshing profile context...");
-          await refreshProfile();
-          console.log("Save complete!");
-        })(),
-        timeoutPromise
-      ]);
-
-      toast.success("Profile updated successfully!");
+      await refreshProfile();
+      setPhotoFile(null);
+      toast.success("Profile saved");
     } catch (err: any) {
-      console.error("Save profile error:", err);
-      toast.error(err.message || "Failed to update profile");
+      toast.error(err?.message || "Couldn't save your profile.");
     } finally {
-      setIsSavingProfile(false);
+      // Always clears, so the button can never stay stuck spinning.
+      setSavingProfile(false);
     }
   };
-  
 
-  const handleUpdatePassword = async () => {
+  const savePassword = async () => {
     if (!newPassword || !confirmPassword) {
-      toast.error("Please fill in both password fields.");
+      toast.error("Fill in both password fields.");
       return;
     }
     if (newPassword !== confirmPassword) {
-      toast.error("Passwords do not match.");
+      toast.error("Those passwords don't match.");
       return;
     }
-    if (newPassword.length < 6) {
-      toast.error("Password must be at least 6 characters.");
+    if (newPassword.length < 8) {
+      toast.error("Use at least 8 characters.");
       return;
     }
 
-    setIsSavingPassword(true);
+    setSavingPassword(true);
     try {
-      const { error } = await supabase.auth.updateUser({
-        password: newPassword,
-      });
-
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
       if (error) throw new Error(error.message);
-
-      toast.success("Password updated successfully!");
       setNewPassword("");
       setConfirmPassword("");
+      toast.success("Password updated");
     } catch (err: any) {
-      toast.error(err.message || "Failed to update password");
+      toast.error(err?.message || "Couldn't update your password.");
     } finally {
-      setIsSavingPassword(false);
+      setSavingPassword(false);
     }
   };
 
   return (
-    <section className="space-y-4 pb-12">
-      <TopFilters />
-      
-      <div className="rounded-xl border border-border bg-surface p-5">
-        <div className="mb-5 flex items-center gap-2 border-b border-border pb-4">
-          <button 
-            onClick={() => setActiveTab("profile")}
-            className={`rounded-lg px-4 py-2 text-xs font-semibold transition-colors ${
-              activeTab === "profile" 
-                ? "bg-primary text-white" 
-                : "bg-muted/50 text-subtle hover:bg-muted hover:text-text"
+    <section className="space-y-6 pb-12">
+      <div>
+        <h1 className="text-xl font-bold text-text">Settings</h1>
+        <p className="mt-1 text-xs text-subtle">Your public profile and account.</p>
+      </div>
+
+      <div className="flex items-center gap-1 border-b border-border">
+        {([
+          ["profile", "Profile"],
+          ["security", "Security"],
+        ] as const).map(([key, label]) => (
+          <button
+            key={key}
+            onClick={() => setTab(key)}
+            className={`border-b-2 px-4 py-3 text-xs font-semibold transition-colors ${
+              tab === key
+                ? "border-blue-500 text-text"
+                : "border-transparent text-subtle hover:text-text"
             }`}
           >
-            Profile
+            {label}
           </button>
-          <button 
-            onClick={() => setActiveTab("security")}
-            className={`rounded-lg px-4 py-2 text-xs font-semibold transition-colors ${
-              activeTab === "security" 
-                ? "bg-primary text-white" 
-                : "bg-muted/50 text-subtle hover:bg-muted hover:text-text"
-            }`}
-          >
-            Security
-          </button>
-        </div>
+        ))}
+      </div>
 
-        {activeTab === "profile" && (
-          <div className="space-y-8 animate-in fade-in duration-300">
-            <section>
-              <h2 className="text-sm font-semibold text-text mb-1">Public Profile</h2>
-              <p className="text-xs text-subtle mb-6">Manage how you appear to your audience.</p>
+      {tab === "profile" && (
+        <div className="space-y-6">
+          <div className="rounded-2xl border border-border bg-surface p-6">
+            <h2 className="text-sm font-bold text-text">Public profile</h2>
+            <p className="mt-1 text-xs text-subtle">This is what buyers see on your storefront.</p>
 
-              <div className="flex flex-col gap-6 sm:flex-row">
-                <div className="flex flex-col items-center gap-3">
-                  <div className="relative h-24 w-24 overflow-hidden rounded-full border-2 border-border bg-muted">
-                    {avatarUrl ? (
-                      <img src={avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center bg-zinc-800 text-zinc-600">
-                        <User className="h-10 w-10" />
-                      </div>
-                    )}
-                    <button 
-                      onClick={() => fileInputRef.current?.click()}
-                      className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity hover:opacity-100"
-                    >
-                      <Camera className="h-6 w-6 text-white" />
-                    </button>
-                  </div>
-                  <input 
-                    type="file" 
-                    ref={fileInputRef} 
-                    onChange={handlePhotoSelect} 
-                    accept="image/*" 
-                    className="hidden" 
-                  />
-                  <button 
-                    onClick={() => fileInputRef.current?.click()}
-                    className="text-xs font-medium text-blue-500 hover:text-blue-400 transition-colors"
-                  >
-                    Change Avatar
-                  </button>
-                </div>
-
-                <div className="flex-1 space-y-4">
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-medium text-subtle">First Name</label>
-                      <input
-                        type="text"
-                        value={firstName}
-                        onChange={(e) => setFirstName(e.target.value)}
-                        placeholder="e.g. Sarah"
-                        className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm text-text outline-none focus:border-blue-500"
-                      />
+            <div className="mt-6 flex flex-col gap-6 sm:flex-row">
+              <div className="flex flex-col items-center gap-3">
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="group relative h-24 w-24 overflow-hidden rounded-full border-2 border-border bg-muted"
+                >
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt="Your photo" className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-subtle">
+                      <User className="h-10 w-10" />
                     </div>
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-medium text-subtle">Last Name</label>
-                      <input
-                        type="text"
-                        value={lastName}
-                        onChange={(e) => setLastName(e.target.value)}
-                        placeholder="e.g. Jenkins"
-                        className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm text-text outline-none focus:border-blue-500"
-                      />
-                    </div>
+                  )}
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
+                    <Camera className="h-6 w-6 text-white" />
                   </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-subtle">Creator Handle (URL)</label>
-                    <div className="flex items-center">
-                      <span className="rounded-l-lg border border-r-0 border-border bg-muted/50 px-3 py-2 text-sm text-subtle">
-                        paylance.com/
-                      </span>
-                      <input
-                        type="text"
-                        value={handle}
-                        onChange={(e) => setHandle(e.target.value)}
-                        placeholder="your-handle"
-                        className="w-full rounded-r-lg border border-border bg-muted px-3 py-2 text-sm text-text outline-none focus:border-blue-500"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-subtle">Headline / Bio</label>
-                    <textarea
-                      value={bio}
-                      onChange={(e) => setBio(e.target.value)}
-                      placeholder="What do you do?"
-                      rows={3}
-                      className="w-full resize-none rounded-lg border border-border bg-muted px-3 py-2 text-sm text-text outline-none focus:border-blue-500"
-                    />
-                  </div>
-
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-medium text-subtle">Category</label>
-                      <select
-                        value={category}
-                        onChange={(e) => setCategory(e.target.value)}
-                        className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm text-text outline-none focus:border-blue-500"
-                      >
-                        <option value="">Select category...</option>
-                        <option value="design">Design</option>
-                        <option value="development">Development</option>
-                        <option value="writing">Writing</option>
-                        <option value="video">Video</option>
-                        <option value="music">Music</option>
-                        <option value="business">Business</option>
-                        <option value="other">Other</option>
-                      </select>
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-medium text-subtle">Location</label>
-                      <input
-                        type="text"
-                        value={location}
-                        onChange={(e) => setLocation(e.target.value)}
-                        placeholder="e.g. Lagos, Nigeria"
-                        className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm text-text outline-none focus:border-blue-500"
-                      />
-                    </div>
-                  </div>
-                </div>
+                </button>
+                <p className="text-[10px] text-subtle">Click to change</p>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={onPhotoSelect}
+                  className="hidden"
+                />
               </div>
 
-              <div className="mt-8 flex justify-end border-t border-border pt-5">
-                <button 
-                  onClick={handleUpdateProfile}
-                  disabled={isSavingProfile}
-                  className="flex min-w-[120px] items-center justify-center rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-bold text-white transition-all hover:bg-blue-500 active:scale-95 disabled:opacity-50"
+              <div className="flex-1 space-y-4">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label="First name" value={firstName} onChange={setFirstName} placeholder="Chidi" />
+                  <Field label="Last name" value={lastName} onChange={setLastName} placeholder="Okonkwo" />
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-subtle">Handle</label>
+                  <div className="flex items-center overflow-hidden rounded-lg border border-border bg-muted focus-within:border-blue-500">
+                    <span className="shrink-0 border-r border-border px-3 py-2.5 text-xs text-subtle">
+                      paylance.me/
+                    </span>
+                    <input
+                      value={handle}
+                      onChange={(e) => setHandle(normalizeHandle(e.target.value))}
+                      placeholder="yourname"
+                      className="h-10 w-full bg-transparent px-3 text-sm text-text placeholder:text-subtle focus:outline-none"
+                    />
+                    {handle && (
+                      <span className="shrink-0 pr-3">
+                        {handleState.ok ? (
+                          <Check className="h-4 w-4 text-emerald-500" />
+                        ) : (
+                          <X className="h-4 w-4 text-red-500" />
+                        )}
+                      </span>
+                    )}
+                  </div>
+
+                  {handle && !handleState.ok ? (
+                    <p className="mt-1.5 text-[11px] text-red-400">{handleState.reason}</p>
+                  ) : handle && handleState.ok && handleUnchanged ? (
+                    <div className="mt-1.5 flex flex-wrap items-center gap-3">
+                      <button
+                        onClick={() => {
+                          navigator.clipboard?.writeText(publicUrl);
+                          toast.success("Link copied");
+                        }}
+                        className="inline-flex items-center gap-1.5 text-[11px] text-subtle hover:text-text"
+                      >
+                        <Copy className="h-3 w-3" /> Copy your link
+                      </button>
+                      <a
+                        href={`/${normalizeHandle(handle)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 text-[11px] text-blue-500 hover:underline"
+                      >
+                        View storefront <ExternalLink className="h-3 w-3" />
+                      </a>
+                    </div>
+                  ) : (
+                    <p className="mt-1.5 text-[11px] text-subtle">
+                      Letters, numbers, hyphens and underscores. Save to claim it.
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-subtle">Bio</label>
+                  <textarea
+                    value={bio}
+                    onChange={(e) => setBio(e.target.value.slice(0, 200))}
+                    rows={3}
+                    placeholder="A line about what you make."
+                    className="w-full resize-none rounded-lg border border-border bg-muted p-3 text-sm text-text placeholder:text-subtle focus:border-blue-500 focus:outline-none"
+                  />
+                  <p className="mt-1 text-right text-[10px] text-subtle">{bio.length}/200</p>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-subtle">Category</label>
+                    <select
+                      value={category}
+                      onChange={(e) => setCategory(e.target.value)}
+                      className="h-10 w-full rounded-lg border border-border bg-muted px-3 text-sm text-text focus:border-blue-500 focus:outline-none"
+                    >
+                      <option value="">Choose one</option>
+                      {CATEGORIES.map((c) => (
+                        <option key={c} value={c.toLowerCase()}>
+                          {c}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <Field label="Location" value={location} onChange={setLocation} placeholder="Lagos" />
+                </div>
+
+                <button
+                  onClick={saveProfile}
+                  disabled={savingProfile}
+                  className="flex h-10 items-center justify-center rounded-lg bg-white px-6 text-xs font-bold text-black transition-transform hover:scale-[1.02] disabled:opacity-60"
                 >
-                  {isSavingProfile ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Profile"}
+                  {savingProfile ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save changes"}
                 </button>
               </div>
-            </section>
+            </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {activeTab === "security" && (
-          <div className="space-y-6 animate-in fade-in duration-300">
-            <section>
-              <h2 className="text-sm font-semibold text-text mb-1">Account Security</h2>
-              <p className="text-xs text-subtle mb-6">Manage your password and account protection settings.</p>
-              
-              <div className="max-w-md space-y-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-subtle">New Password</label>
+      {tab === "security" && (
+        <div className="space-y-6">
+          <div className="rounded-2xl border border-border bg-surface p-6">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10">
+                <Lock className="h-5 w-5 text-blue-500" />
+              </div>
+              <div>
+                <h2 className="text-sm font-bold text-text">Change password</h2>
+                <p className="text-xs text-subtle">At least 8 characters.</p>
+              </div>
+            </div>
+
+            <div className="mt-6 max-w-sm space-y-4">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-subtle">New password</label>
+                <div className="relative">
                   <input
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="Enter new password"
-                    className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm text-text outline-none focus:border-blue-500"
+                    className="h-10 w-full rounded-lg border border-border bg-muted px-3 pr-10 text-sm text-text focus:border-blue-500 focus:outline-none"
                   />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-subtle">Confirm Password</label>
-                  <input
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Confirm new password"
-                    className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm text-text outline-none focus:border-blue-500"
-                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-subtle hover:text-text"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
                 </div>
               </div>
 
-              <div className="mt-8 flex justify-start border-t border-border pt-5">
-                <button 
-                  onClick={handleUpdatePassword}
-                  disabled={isSavingPassword}
-                  className="flex min-w-[120px] items-center justify-center rounded-lg bg-primary px-6 py-2.5 text-sm font-bold text-white transition-all hover:bg-primary/80 active:scale-95 disabled:opacity-50"
-                >
-                  {isSavingPassword ? <Loader2 className="h-4 w-4 animate-spin" /> : "Update Password"}
-                </button>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-subtle">Confirm password</label>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="h-10 w-full rounded-lg border border-border bg-muted px-3 text-sm text-text focus:border-blue-500 focus:outline-none"
+                />
+                {confirmPassword.length > 0 && newPassword !== confirmPassword && (
+                  <p className="mt-1.5 text-[11px] text-red-400">These don&apos;t match.</p>
+                )}
               </div>
-            </section>
+
+              <button
+                onClick={savePassword}
+                disabled={savingPassword}
+                className="flex h-10 items-center justify-center rounded-lg bg-white px-6 text-xs font-bold text-black disabled:opacity-60"
+              >
+                {savingPassword ? <Loader2 className="h-4 w-4 animate-spin" /> : "Update password"}
+              </button>
+            </div>
           </div>
-        )}
-      </div>
+
+          <div className="rounded-2xl border border-border bg-surface p-6">
+            <h2 className="text-sm font-bold text-text">Account</h2>
+            <dl className="mt-4 space-y-3 text-xs">
+              <div className="flex justify-between">
+                <dt className="text-subtle">Email</dt>
+                <dd className="font-medium text-text">{user?.email}</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-subtle">Joined</dt>
+                <dd className="font-medium text-text">
+                  {user?.created_at
+                    ? new Date(user.created_at).toLocaleDateString("en-NG", {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      })
+                    : "—"}
+                </dd>
+              </div>
+            </dl>
+
+            <button
+              onClick={() => signOut()}
+              className="mt-6 flex h-10 items-center justify-center gap-2 rounded-lg border border-border bg-muted px-5 text-xs font-semibold text-text transition-colors hover:bg-muted/70"
+            >
+              <LogOut className="h-3.5 w-3.5" /> Sign out
+            </button>
+          </div>
+        </div>
+      )}
     </section>
+  );
+}
+
+function Field({
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+}) {
+  return (
+    <div>
+      <label className="mb-1 block text-xs font-medium text-subtle">{label}</label>
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="h-10 w-full rounded-lg border border-border bg-muted px-3 text-sm text-text placeholder:text-subtle focus:border-blue-500 focus:outline-none"
+      />
+    </div>
   );
 }

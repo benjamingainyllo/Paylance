@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth/auth-provider";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
+import { checkHandle, normalizeHandle } from "@/lib/handle";
 import { 
   Sparkles, 
   Rocket, 
@@ -102,7 +103,7 @@ export default function OnboardingPage() {
 
       // Update profile in Supabase (row already exists from auth trigger)
       const profileData: Record<string, any> = {
-        handle: handle.toLowerCase() || null,
+        handle: normalizeHandle(handle) || null,
         category: category || null,
         bio: bio || null,
         location: location || null,
@@ -153,7 +154,7 @@ export default function OnboardingPage() {
   };
 
   const enterDashboard = () => {
-    router.push(`/${handle}`);
+    router.push(`/${normalizeHandle(handle)}`);
   };
 
   return (
@@ -191,14 +192,17 @@ export default function OnboardingPage() {
                 <input 
                   type="text" 
                   value={handle}
-                  onChange={(e) => setHandle(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ''))}
+                  onChange={(e) => setHandle(normalizeHandle(e.target.value))}
                   placeholder="username"
                   className="h-14 w-full rounded-2xl border border-zinc-800 bg-zinc-900/40 pl-[110px] pr-4 text-lg font-medium outline-none transition-all focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                 />
               </div>
+              {handle && !checkHandle(handle).ok && (
+                <p className="mt-3 text-sm text-red-400">{checkHandle(handle).reason}</p>
+              )}
               <button 
-                onClick={() => handle && setStep(2)}
-                disabled={!handle}
+                onClick={() => checkHandle(handle).ok && setStep(2)}
+                disabled={!checkHandle(handle).ok}
                 className="mt-8 flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-white text-lg font-bold text-black transition-all hover:bg-zinc-200 disabled:opacity-50"
               >
                 Continue

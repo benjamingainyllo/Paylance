@@ -1,227 +1,395 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { TopFilters } from "@/components/dashboard/top-filters";
-import { Search, Filter, Download, MoreHorizontal, UserCheck, Users, Crown, ArrowUpRight, UsersRound } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  Search, Download, Users, UserCheck, Repeat, UsersRound, Loader2, X, Mail, ShoppingBag, Ticket,
+} from "lucide-react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { createClient } from "@/lib/supabase/client";
-import { useCurrency } from "@/hooks/use-currency";
+import { formatKobo } from "@/lib/money";
+import { toast } from "sonner";
 
 interface AudienceMember {
   id: string;
   email: string;
   name: string | null;
-  stage: string;
-  total_spent: number;
+  stage: string | null;
+  total_spent_kobo: number;
   purchase_count: number;
   last_offer: string | null;
   first_seen: string;
   last_seen: string;
 }
 
-const stageColors: Record<string, string> = {
-  vip: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800",
-  customer: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800",
-  lead: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800",
-};
-
+/** Contacts are derived from purchases — nothing here is entered by hand. */
 export default function AudiencePage() {
   const { user } = useAuth();
   const supabase = createClient();
-  const { formatPrice } = useCurrency();
 
   const [audience, setAudience] = useState<AudienceMember[]>([]);
-  const [totalContacts, setTotalContacts] = useState(0);
-  const [totalCustomers, setTotalCustomers] = useState(0);
-  const [totalVips, setTotalVips] = useState(0);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<AudienceMember | null>(null);
 
-  useEffect(() => {
+  const load = useCallback(async () => {
     if (!user) return;
+    setLoading(true);
+    setLoadError(null);
 
-    const fetchAudience = async () => {
-      const { data, count } = await supabase
+    try {
+      const { data, error } = await supabase
         .from("audience")
-        .select("*", { count: "exact" })
+        .select("*")
         .eq("creator_id", user.id)
         .order("last_seen", { ascending: false });
 
-      if (data) {
-        setAudience(data as AudienceMember[]);
-        setTotalContacts(count || 0);
-        setTotalCustomers(data.filter((a: any) => a.stage === "customer").length);
-        setTotalVips(data.filter((a: any) => a.stage === "vip").length);
-      }
-    };
+      if (error) throw error;
+      setAudience((data ?? []) as AudienceMember[]);
+    } catch (error) {
+      console.error("Could not load audience:", error);
+      setLoadError("Couldn't load your audience.");
+    } finally {
+      setLoading(false);
+    }
+  }, [user, supabase]);
 
-    fetchAudience();
-  }, [user]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
-  const filteredAudience = audience.filter(
-    (a) =>
-      !searchQuery ||
-      a.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      a.name?.toLowerCase().includes(searchQuery.toLowerCase())
+  const filtered = useMemo(
+    () =>
+      audience.filter(
+        (a) =>
+          !search ||
+          a.email.toLowerCase().includes(search.toLowerCase()) ||
+          a.name?.toLowerCase().includes(search.toLowerCase())
+      ),
+    [audience, search]
   );
 
-  const metrics = [
-    {
-      title: "Total contacts",
-      value: String(totalContacts),
-      icon: Users,
-      color: "from-blue-600 to-indigo-600",
-    },
-    {
-      title: "Customers",
-      value: String(totalCustomers),
-      icon: UserCheck,
-      color: "from-emerald-500 to-teal-600",
-    },
-    {
-      title: "VIP buyers",
-      value: String(totalVips),
-      icon: Crown,
-      color: "from-amber-500 to-orange-600",
-    },
-  ];
+  const buyers = audience.filter((a) => (a.purchase_count ?? 0) > 0).length;
+  const repeatBuyers = audience.filter((a) => (a.purchase_count ?? 0) > 1).length;
 
-  const getInitials = (name: string | null, email: string) => {
-    if (name) {
-      return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
-    }
-    return email.slice(0, 2).toUpperCase();
-  };
+  const exportCsv = () => {
+    if (audience.length === 0) return;
 
-  const getAvatarColor = (str: string) => {
-    const colors = [
-      "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
-      "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-      "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
-      "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-      "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400",
+    const rows = [
+      ["Name", "Email", "Stage", "Purchases", "Total spent (NGN)", "Last item", "First seen", "Last seen"],
+      ...audience.map((a) => [
+        a.name ?? "",
+        a.email,
+        a.stage ?? "lead",
+        String(a.purchase_count ?? 0),
+        (Number(a.total_spent_kobo ?? 0) / 100).toFixed(2),
+        a.last_offer ?? "",
+        a.first_seen,
+        a.last_seen,
+      ]),
     ];
-    const index = str.charCodeAt(0) % colors.length;
-    return colors[index];
+
+    // Quote every field and double any internal quotes, so names containing
+    // commas don't shift the columns.
+    const csv = rows
+      .map((r) => r.map((f) => `"${String(f).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8;" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `paylance-audience-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    toast.success("Audience exported");
   };
 
-  const timeAgo = (date: string) => {
-    const now = new Date();
-    const d = new Date(date);
-    const diff = now.getTime() - d.getTime();
-    const minutes = Math.floor(diff / 60000);
-    if (minutes < 60) return `${minutes}m ago`;
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours}h ago`;
-    const days = Math.floor(hours / 24);
-    return `${days}d ago`;
-  };
+  const metrics = [
+    { title: "Contacts", value: String(audience.length), icon: Users, accent: "text-blue-500", bg: "bg-blue-500/10" },
+    { title: "Buyers", value: String(buyers), icon: UserCheck, accent: "text-emerald-500", bg: "bg-emerald-500/10" },
+    { title: "Repeat buyers", value: String(repeatBuyers), icon: Repeat, accent: "text-purple-500", bg: "bg-purple-500/10" },
+  ];
 
   return (
     <section className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-xl font-bold text-text">Audience</h1>
-        <TopFilters />
-      </div>
-      
-      {/* Metrics Row */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {metrics.map((metric) => {
-          const Icon = metric.icon;
-          return (
-            <div key={metric.title} className="group relative overflow-hidden rounded-2xl border border-border bg-surface p-5 transition-all hover:shadow-md">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-subtle">{metric.title}</p>
-                  <div className="mt-2 flex items-baseline gap-2">
-                    <p className="text-3xl font-bold tracking-tight text-text">{metric.value}</p>
-                  </div>
-                </div>
-                <div className={`flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br ${metric.color} shadow-inner`}>
-                  <Icon className="h-6 w-6 text-white" />
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* CRM Section */}
-      <div className="rounded-2xl border border-border bg-surface shadow-sm overflow-hidden">
-        <div className="flex flex-col gap-4 border-b border-border p-5 sm:flex-row sm:items-center sm:justify-between bg-muted/30">
-          <div>
-            <h2 className="text-lg font-bold text-text">Audience CRM</h2>
-            <p className="text-sm text-subtle">Manage your contacts, leads, and paying customers.</p>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-subtle" />
-              <input 
-                type="text" 
-                placeholder="Search contacts..." 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-9 w-[200px] rounded-lg border border-border bg-surface pl-9 pr-3 text-sm text-text placeholder:text-subtle focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              />
-            </div>
-          </div>
+        <div>
+          <h1 className="text-xl font-bold text-text">Audience</h1>
+          <p className="mt-1 text-xs text-subtle">
+            Everyone who has bought from you. Yours to keep, wherever you go next.
+          </p>
         </div>
 
-        {filteredAudience.length > 0 ? (
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="relative flex items-center">
+            <Search className="absolute left-3 h-4 w-4 text-subtle" />
+            <input
+              type="text"
+              placeholder="Search contacts..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="h-9 w-full rounded-lg border border-border bg-muted/50 pl-9 pr-4 text-xs text-text focus:border-white/20 focus:outline-none sm:w-56"
+            />
+          </div>
+          <button
+            onClick={exportCsv}
+            disabled={audience.length === 0}
+            className="flex h-9 items-center justify-center gap-2 rounded-lg border border-border bg-muted/50 px-4 text-xs font-semibold text-text transition-colors hover:bg-muted disabled:opacity-40"
+          >
+            <Download className="h-3.5 w-3.5" /> Export CSV
+          </button>
+        </div>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        {metrics.map((m) => (
+          <div key={m.title} className="rounded-2xl border border-border bg-surface p-5">
+            <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${m.bg}`}>
+              <m.icon className={`h-5 w-5 ${m.accent}`} />
+            </div>
+            <p className="mt-4 text-[10px] font-bold uppercase tracking-widest text-subtle">
+              {m.title}
+            </p>
+            <p className="mt-1 text-2xl font-bold text-text">{m.value}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="overflow-hidden rounded-2xl border border-border bg-surface">
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="h-6 w-6 animate-spin text-subtle" />
+          </div>
+        ) : loadError ? (
+          <div className="py-16 text-center">
+            <p className="text-sm text-text">{loadError}</p>
+            <button
+              onClick={load}
+              className="mt-4 rounded-lg border border-border bg-muted px-4 py-2 text-xs font-medium text-text"
+            >
+              Retry
+            </button>
+          </div>
+        ) : audience.length === 0 ? (
+          <div className="py-20 text-center">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-muted text-subtle">
+              <UsersRound className="h-7 w-7" />
+            </div>
+            <p className="text-sm font-semibold text-text">No contacts yet</p>
+            <p className="mx-auto mt-1 max-w-xs px-6 text-xs text-subtle">
+              Everyone who buys an offer or a ticket is added here automatically, with what
+              they bought and what they spent.
+            </p>
+          </div>
+        ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm text-text">
-              <thead className="bg-muted/50 text-xs uppercase text-subtle border-b border-border">
+              <thead className="border-b border-border bg-muted/40 text-[10px] uppercase tracking-wider text-subtle">
                 <tr>
-                  <th className="px-6 py-4 font-semibold">Contact</th>
-                  <th className="px-6 py-4 font-semibold">Last Offer</th>
-                  <th className="px-6 py-4 font-semibold">Stage</th>
-                  <th className="px-6 py-4 font-semibold">Total Spent</th>
-                  <th className="px-6 py-4 font-semibold">Last Active</th>
+                  <th className="px-6 py-3 font-semibold">Contact</th>
+                  <th className="px-6 py-3 font-semibold">Last purchase</th>
+                  <th className="px-6 py-3 font-semibold">Orders</th>
+                  <th className="px-6 py-3 font-semibold">Spent</th>
+                  <th className="px-6 py-3 font-semibold">Last seen</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {filteredAudience.map((person) => (
-                  <tr key={person.id} className="group transition-colors hover:bg-muted/50">
+                {filtered.map((person) => (
+                  <tr
+                    key={person.id}
+                    onClick={() => setSelected(person)}
+                    className="cursor-pointer transition-colors hover:bg-muted/40"
+                  >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className={`flex h-10 w-10 items-center justify-center rounded-full font-bold ${getAvatarColor(person.email)}`}>
-                          {getInitials(person.name, person.email)}
-                        </div>
-                        <div>
-                          <div className="font-semibold">{person.name || "Unknown"}</div>
-                          <div className="text-xs text-subtle">{person.email}</div>
+                        <Avatar name={person.name} email={person.email} />
+                        <div className="min-w-0">
+                          <div className="truncate font-semibold">{person.name || "—"}</div>
+                          <div className="truncate text-xs text-subtle">{person.email}</div>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="font-medium">{person.last_offer || "—"}</span>
+                      <span className="text-xs text-subtle">{person.last_offer || "—"}</span>
                     </td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${stageColors[person.stage] || stageColors.lead}`}>
-                        {person.stage.charAt(0).toUpperCase() + person.stage.slice(1)}
-                      </span>
+                    <td className="px-6 py-4 text-xs">{person.purchase_count ?? 0}</td>
+                    <td className="px-6 py-4 font-semibold text-emerald-500">
+                      {formatKobo(Number(person.total_spent_kobo ?? 0))}
                     </td>
-                    <td className="px-6 py-4 font-semibold">
-                      {formatPrice(Number(person.total_spent))}
-                    </td>
-                    <td className="px-6 py-4 text-subtle">
-                      {timeAgo(person.last_seen)}
-                    </td>
+                    <td className="px-6 py-4 text-xs text-subtle">{timeAgo(person.last_seen)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </div>
-        ) : (
-          <div className="py-16 text-center">
-            <UsersRound className="h-14 w-14 text-zinc-700 mx-auto mb-4" />
-            <h3 className="text-sm font-semibold text-text">No audience yet</h3>
-            <p className="mt-1 text-xs text-subtle max-w-xs mx-auto">
-              When people buy your offers or subscribe, they&apos;ll appear here automatically.
-            </p>
+
+            {filtered.length === 0 && (
+              <p className="py-10 text-center text-xs text-subtle">
+                No contacts match &ldquo;{search}&rdquo;.
+              </p>
+            )}
           </div>
         )}
       </div>
+
+      {selected && <ContactDrawer person={selected} onClose={() => setSelected(null)} />}
     </section>
   );
+}
+
+function Avatar({ name, email }: { name: string | null; email: string }) {
+  const initials = name
+    ? name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
+    : email.slice(0, 2).toUpperCase();
+
+  const palette = [
+    "bg-blue-500/15 text-blue-500",
+    "bg-emerald-500/15 text-emerald-500",
+    "bg-purple-500/15 text-purple-500",
+    "bg-amber-500/15 text-amber-500",
+    "bg-rose-500/15 text-rose-500",
+  ];
+  const tone = palette[email.charCodeAt(0) % palette.length];
+
+  return (
+    <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-bold ${tone}`}>
+      {initials}
+    </div>
+  );
+}
+
+/** Their full order history — pulled live, not carried in from the table row. */
+function ContactDrawer({ person, onClose }: { person: AudienceMember; onClose: () => void }) {
+  const { user } = useAuth();
+  const supabase = createClient();
+  const [orders, setOrders] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from("orders")
+          .select("id, item_title, item_type, gross_kobo, status, created_at")
+          .eq("creator_id", user?.id)
+          .eq("buyer_email", person.email)
+          .order("created_at", { ascending: false });
+        if (active) setOrders(data ?? []);
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [person.email, user?.id, supabase]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm" onClick={onClose}>
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="h-full w-full max-w-md overflow-y-auto border-l border-border bg-surface p-6"
+      >
+        <div className="flex items-start justify-between">
+          <div className="flex items-center gap-3">
+            <Avatar name={person.name} email={person.email} />
+            <div className="min-w-0">
+              <p className="truncate text-base font-bold text-text">{person.name || "—"}</p>
+              <p className="truncate text-xs text-subtle">{person.email}</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="text-subtle hover:text-text">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="mt-6 grid grid-cols-2 gap-3">
+          <div className="rounded-xl border border-border bg-muted/40 p-4">
+            <p className="text-[10px] uppercase tracking-widest text-subtle">Total spent</p>
+            <p className="mt-1 text-lg font-bold text-emerald-500">
+              {formatKobo(Number(person.total_spent_kobo ?? 0))}
+            </p>
+          </div>
+          <div className="rounded-xl border border-border bg-muted/40 p-4">
+            <p className="text-[10px] uppercase tracking-widest text-subtle">Orders</p>
+            <p className="mt-1 text-lg font-bold text-text">{person.purchase_count ?? 0}</p>
+          </div>
+        </div>
+
+        <a
+          href={`mailto:${person.email}`}
+          className="mt-3 flex h-10 items-center justify-center gap-2 rounded-xl border border-border bg-muted/50 text-xs font-semibold text-text transition-colors hover:bg-muted"
+        >
+          <Mail className="h-3.5 w-3.5" /> Email {person.name?.split(" ")[0] || "them"}
+        </a>
+
+        <p className="mt-8 text-[10px] font-bold uppercase tracking-widest text-subtle">
+          Purchase history
+        </p>
+
+        {loading ? (
+          <div className="flex justify-center py-10">
+            <Loader2 className="h-5 w-5 animate-spin text-subtle" />
+          </div>
+        ) : orders.length === 0 ? (
+          <p className="py-8 text-center text-xs text-subtle">No orders recorded.</p>
+        ) : (
+          <div className="mt-3 space-y-2">
+            {orders.map((o) => (
+              <div
+                key={o.id}
+                className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 p-3"
+              >
+                <div
+                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
+                    o.item_type === "event"
+                      ? "bg-orange-500/10 text-orange-500"
+                      : "bg-blue-500/10 text-blue-500"
+                  }`}
+                >
+                  {o.item_type === "event" ? (
+                    <Ticket className="h-3.5 w-3.5" />
+                  ) : (
+                    <ShoppingBag className="h-3.5 w-3.5" />
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-xs font-medium text-text">
+                    {o.item_title || o.item_type}
+                  </p>
+                  <p className="text-[10px] text-subtle">
+                    {new Date(o.created_at).toLocaleDateString("en-NG")}
+                  </p>
+                </div>
+                <div className="shrink-0 text-right">
+                  <p
+                    className={`text-xs font-bold ${
+                      o.status === "paid" ? "text-emerald-500" : "text-amber-500"
+                    }`}
+                  >
+                    {formatKobo(Number(o.gross_kobo))}
+                  </p>
+                  <p className="text-[9px] uppercase text-subtle">{o.status}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function timeAgo(date: string) {
+  const diff = Date.now() - new Date(date).getTime();
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days}d ago`;
+  return new Date(date).toLocaleDateString("en-NG");
 }
