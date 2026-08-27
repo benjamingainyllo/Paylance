@@ -48,6 +48,9 @@ function DemoCheckoutContent() {
         if (res.success) setOrder(res.order);
         else setError(res.error);
       })
+      .catch((e) => {
+        if (active) setError(e?.message || "Could not load this order.");
+      })
       .finally(() => {
         if (active) setLoading(false);
       });
@@ -80,7 +83,9 @@ function DemoCheckoutContent() {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-2 bg-[#0a0a0a] px-4 text-center text-white">
         <p className="font-semibold">Can&apos;t open this checkout</p>
-        <p className="text-sm text-zinc-500">{error ?? "Order not found."}</p>
+        <p className="max-w-md text-sm leading-relaxed text-zinc-500">
+          {error ?? "Order not found."}
+        </p>
       </div>
     );
   }

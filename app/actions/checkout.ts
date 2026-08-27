@@ -237,15 +237,24 @@ export async function getDemoOrder(reference: string) {
     return { success: false as const, error: "Demo checkout is disabled." };
   }
 
-  const admin = createAdminClient();
-  const { data: order } = await admin
-    .from("orders")
-    .select("reference, item_title, item_type, gross_kobo, status, buyer_email, buyer_name")
-    .eq("reference", reference)
-    .maybeSingle();
+  try {
+    const admin = createAdminClient();
+    const { data: order } = await admin
+      .from("orders")
+      .select("reference, item_title, item_type, gross_kobo, status, buyer_email, buyer_name")
+      .eq("reference", reference)
+      .maybeSingle();
 
-  if (!order) return { success: false as const, error: "Order not found." };
-  return { success: true as const, order };
+    if (!order) return { success: false as const, error: "Order not found." };
+    return { success: true as const, order };
+  } catch (error) {
+    // Almost always the missing service-role key. Say so, rather than
+    // letting it surface as a misleading "order not found".
+    return {
+      success: false as const,
+      error: error instanceof Error ? error.message : "Could not load this order.",
+    };
+  }
 }
 
 /**
@@ -262,15 +271,22 @@ export async function completeDemoCheckout(reference: string, outcome: "paid" | 
     return { success: false as const, error: "Demo checkout is disabled." };
   }
 
-  if (outcome === "failed") {
-    await markOrderFailed(reference, "failed");
-    return { success: true as const, status: "failed" as const };
+  try {
+    if (outcome === "failed") {
+      await markOrderFailed(reference, "failed");
+      return { success: true as const, status: "failed" as const };
+    }
+
+    const settled = await settleOrder({ reference, channel: "card" });
+    if (!settled.ok) return { success: false as const, error: settled.error };
+
+    return { success: true as const, status: "paid" as const };
+  } catch (error) {
+    return {
+      success: false as const,
+      error: error instanceof Error ? error.message : "Could not complete this payment.",
+    };
   }
-
-  const settled = await settleOrder({ reference, channel: "card" });
-  if (!settled.ok) return { success: false as const, error: settled.error };
-
-  return { success: true as const, status: "paid" as const };
 }
 
 interface SellableItem {
