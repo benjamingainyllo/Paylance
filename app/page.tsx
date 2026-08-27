@@ -2,560 +2,439 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import {
-  Layers3,
-  ArrowRight,
-  Check,
-  X,
-  Menu,
-  Store,
-  Ticket,
-  Video,
-  Users,
-  BarChart3,
-  Landmark,
-  Link2,
-  ShieldCheck,
-  MessageCircle,
-} from "lucide-react";
+import { ArrowRight, Menu, X, Check } from "lucide-react";
 import { useAuth } from "@/components/auth/auth-provider";
+import { ArrowCurve, Circled, Sparkle, Squiggle, Star, Underline } from "@/components/marketing/doodles";
+import { EventCardMock, LinkMock, OrdersMock, PayoutMock } from "@/components/marketing/mockups";
 
-/**
- * Paylance is a creator OS: offers, events, audience, revenue, payouts on one
- * shared rail. Events are the most vivid thing you can sell with it, not the
- * definition of the product — so they get a prominent slot here, not the
- * headline.
- */
+/** Highlighter stroke behind a word. */
+function Mark({ children, color }: { children: React.ReactNode; color?: string }) {
+  return (
+    <span className="lp-mark" style={color ? ({ ["--mark-color" as any]: color }) : undefined}>
+      <span>{children}</span>
+    </span>
+  );
+}
 
-const SELLABLE = [
-  {
-    icon: Store,
-    title: "Digital products",
-    body: "Ebooks, presets, templates, courses. Upload once, sell it as many times as you like.",
-  },
-  {
-    icon: Ticket,
-    title: "Events & tickets",
-    body: "Workshops, meetups, classes, parties. Sell tickets or take free RSVPs, and see exactly who's coming.",
-  },
-  {
-    icon: Video,
-    title: "Sessions & services",
-    body: "Coaching calls, consulting, custom work. Set your price and let people book and pay in one step.",
-  },
-];
-
-const DASHBOARD = [
-  {
-    icon: Users,
-    title: "Audience",
-    body: "Everyone who buys becomes a contact you own — not a follower on a platform that can change the rules.",
-  },
-  {
-    icon: BarChart3,
-    title: "Revenue",
-    body: "One ledger across everything you sell. Gross, fees, and exactly what landed in your account.",
-  },
-  {
-    icon: Landmark,
-    title: "Payouts",
-    body: "Connect your bank once. Every settlement is listed, and nothing is held in between.",
-  },
-  {
-    icon: Link2,
-    title: "Storefront",
-    body: "One public page with everything you're selling. Put it in your bio and stop rewriting link lists.",
-  },
-];
-
-const BEFORE = [
-  "Payment links scattered across four different tools",
-  "“Send me your account details”",
-  "Screenshots to match against a list by hand",
-  "Chasing the people who never paid",
-  "No single place that says what you actually earned",
-];
-
-const AFTER = [
-  "One link for everything you sell",
-  "Buyers pay by card or bank transfer",
-  "Every sale recorded the moment it happens",
-  "Money settled straight to your bank",
-  "One dashboard with the real numbers",
-];
-
-const STEPS = [
-  {
-    number: "01",
-    title: "Create what you're selling",
-    body: "A product, a ticketed event, a session. Set a price, or make it free.",
-  },
-  {
-    number: "02",
-    title: "Share your link",
-    body: "Your storefront, or a direct link to one thing. Works in a bio, a chat, a story — anywhere.",
-  },
-  {
-    number: "03",
-    title: "Get paid",
-    body: "Buyers pay however they like. Your money settles directly to your bank — it never sits with us.",
-  },
-];
-
-const BUYER_TRUST = [
-  {
-    icon: X,
-    title: "No account, no app",
-    body: "Buyers tap the link and pay. No sign-up, no download, no password between them and checkout.",
-  },
-  {
-    icon: Users,
-    title: "They see who's already in",
-    body: "Real names of people who've bought or RSVP'd — the clearest signal that a link is genuine.",
-  },
-  {
-    icon: ShieldCheck,
-    title: "Your name on the page",
-    body: "Your photo and profile are front and centre. People are trusting you, not an unfamiliar logo.",
-  },
-  {
-    icon: MessageCircle,
-    title: "Looks right when shared",
-    body: "Cover art, title, date and price appear in the link preview before the page even loads.",
-  },
-];
-
-const FAQS = [
-  {
-    q: "What can I actually sell?",
-    a: "Digital products, event tickets, and services or sessions — all from the same account, the same link and the same checkout.",
-  },
-  {
-    q: "Do my buyers need an account?",
-    a: "No. They tap your link, enter their name and email, and pay. No sign-up, no app.",
-  },
-  {
-    q: "How do I get my money?",
-    a: "Straight to your own bank account. Payments are split at the moment someone pays, so your share settles directly to you — Paylance never holds it.",
-  },
-  {
-    q: "Can I run something for free?",
-    a: "Yes. Free events and free products work the same way — you just collect sign-ups instead of payments, and you still see exactly who came through.",
-  },
-  {
-    q: "What does it cost?",
-    a: "Nothing to start and no monthly fee. We take a small percentage when you actually get paid, so if you don't sell anything, you don't pay anything.",
-  },
-  {
-    q: "Do I need a website?",
-    a: "No. Your storefront is the website. You get one shareable link with everything you sell on it.",
-  },
+const WHO_ITS_FOR = [
+  { tone: "#FFB3C7", title: "First-timers", body: "Selling one thing for the first time and not sure where to start. This is the whole setup — no site to build." },
+  { tone: "#FFDE59", title: "People who make things", body: "Presets, templates, ebooks, courses. Upload once, sell it as many times as you like." },
+  { tone: "#9BE3C0", title: "Hosts", body: "Workshops, classes, listening parties. Sell tickets or take free RSVPs and see who's actually coming." },
+  { tone: "#B7C4FF", title: "Bookers", body: "Coaching, consulting, custom work. Set your rate, let people book and pay in one step." },
+  { tone: "#DDBBF5", title: "Anyone tired of DMs", body: "No more “send me your account details” and counting transfer screenshots by hand." },
+  { tone: "#FFC9A8", title: "People who want the receipts", body: "Every sale recorded, every buyer kept, every naira accounted for. Yours to take anywhere." },
 ];
 
 export default function LandingPage() {
   const { user } = useAuth();
   const [mounted, setMounted] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-
   useEffect(() => setMounted(true), []);
-  const isSignedIn = mounted && !!user;
 
-  const primaryHref = isSignedIn ? "/overview" : "/login";
-  const primaryLabel = isSignedIn ? "Go to dashboard" : "Start selling free";
+  const signedIn = mounted && !!user;
+  const href = signedIn ? "/overview" : "/login";
+  const cta = signedIn ? "Go to dashboard" : "Start selling — it's free";
 
   const NAV = [
-    ["#sell", "What you can sell"],
-    ["#how-it-works", "How it works"],
-    ["#dashboard", "Your dashboard"],
-    ["#faq", "FAQ"],
+    ["#sell", "What you sell"],
+    ["#how", "How it works"],
+    ["#money", "The money"],
+    ["#faq", "Questions"],
   ] as const;
 
   return (
-    <main className="theme-light min-h-screen overflow-x-hidden bg-background text-text">
-      {/* ---------------- Nav ---------------- */}
-      <header className="sticky top-0 z-50 border-b border-border/60 bg-background/80 backdrop-blur-xl">
+    <main className="lp min-h-screen overflow-x-hidden font-[family-name:var(--font-bricolage-grotesque)]">
+      {/* ══════════════ Nav ══════════════ */}
+      <header className="sticky top-0 z-50 border-b-2 border-[var(--ink)] bg-[var(--paper)]">
         <nav className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5">
           <Link href="/" className="flex items-center gap-2">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600">
-              <Layers3 className="h-4 w-4 text-white" />
+            <span className="flex h-8 w-8 rotate-[-4deg] items-center justify-center rounded-lg border-2 border-[var(--ink)] bg-[var(--coral)] text-[13px] font-black text-white">
+              P
             </span>
-            <span className="text-base font-bold tracking-tight">Paylance</span>
+            <span className="text-[17px] font-extrabold tracking-tight">Paylance</span>
           </Link>
 
-          <div className="hidden items-center gap-8 md:flex">
-            {NAV.map(([href, label]) => (
-              <a key={href} href={href} className="text-sm text-subtle transition-colors hover:text-text">
+          <div className="hidden items-center gap-7 md:flex">
+            {NAV.map(([h, label]) => (
+              <a key={h} href={h} className="text-[13px] font-semibold text-[var(--ink-soft)] transition-colors hover:text-[var(--ink)]">
                 {label}
               </a>
             ))}
           </div>
 
-          <div className="hidden items-center gap-3 md:flex">
-            {!isSignedIn && (
-              <Link href="/login" className="text-sm font-medium text-subtle transition-colors hover:text-text">
+          <div className="hidden items-center gap-4 md:flex">
+            {!signedIn && (
+              <Link href="/login" className="text-[13px] font-semibold text-[var(--ink-soft)] hover:text-[var(--ink)]">
                 Sign in
               </Link>
             )}
             <Link
-              href={primaryHref}
-              className="flex h-9 items-center gap-2 rounded-lg bg-text px-4 text-xs font-semibold text-background transition-transform hover:scale-[1.03] active:scale-[0.98]"
+              href={href}
+              className="lp-block-soft rounded-xl bg-[var(--ink)] px-4 py-2 text-[12px] font-bold text-[var(--paper)] transition-transform hover:-translate-y-0.5"
             >
-              {isSignedIn ? "Dashboard" : "Get started"} <ArrowRight className="h-3.5 w-3.5" />
+              {signedIn ? "Dashboard" : "Get started"}
             </Link>
           </div>
 
           <button
             onClick={() => setMenuOpen((v) => !v)}
             aria-label="Toggle menu"
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-border text-text md:hidden"
+            className="flex h-9 w-9 items-center justify-center rounded-lg border-2 border-[var(--ink)] md:hidden"
           >
             {menuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
           </button>
         </nav>
 
         {menuOpen && (
-          <div className="border-t border-border bg-background px-5 py-4 md:hidden">
+          <div className="border-t-2 border-[var(--ink)] px-5 py-4 md:hidden">
             <div className="flex flex-col gap-4">
-              {NAV.map(([href, label]) => (
-                <a key={href} href={href} onClick={() => setMenuOpen(false)} className="text-sm text-subtle">
+              {NAV.map(([h, label]) => (
+                <a key={h} href={h} onClick={() => setMenuOpen(false)} className="text-sm font-semibold text-[var(--ink-soft)]">
                   {label}
                 </a>
               ))}
-              <Link
-                href={primaryHref}
-                className="flex h-10 items-center justify-center rounded-lg bg-text text-xs font-semibold text-background"
-              >
-                {isSignedIn ? "Dashboard" : "Get started"}
+              <Link href={href} className="lp-block-soft rounded-xl bg-[var(--ink)] px-4 py-3 text-center text-xs font-bold text-[var(--paper)]">
+                {signedIn ? "Dashboard" : "Get started"}
               </Link>
             </div>
           </div>
         )}
       </header>
 
-      {/* ---------------- Hero ---------------- */}
-      <section className="relative overflow-hidden px-5 pb-20 pt-20 sm:pt-28">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute left-1/2 top-0 h-[420px] w-[820px] max-w-[140vw] -translate-x-1/2 rounded-full opacity-[0.16] blur-[110px]"
-          style={{ background: "radial-gradient(circle, #3B82F6 0%, transparent 65%)" }}
-        />
+      {/* ══════════════ Hero — the saturated moment ══════════════ */}
+      <section className="relative overflow-hidden border-b-2 border-[var(--ink)] bg-gradient-to-br from-[#FF6A45] via-[#F5568E] to-[#8B5CF6] px-5 py-20 sm:py-28">
+        <Sparkle className="absolute left-[8%] top-[14%] h-7 w-7 text-white/70" />
+        <Sparkle className="absolute right-[12%] top-[22%] h-4 w-4 text-white/50" />
+        <Star className="absolute bottom-[18%] left-[16%] h-6 w-6 text-white/40" />
 
-        <div className="relative mx-auto max-w-3xl text-center">
-          <div className="mx-auto mb-6 flex w-fit items-center gap-2 rounded-full border border-border bg-surface/70 px-4 py-1.5 backdrop-blur-sm">
-            <span className="text-xs font-medium text-subtle">The operating system for creator businesses</span>
+        <div className="relative mx-auto grid max-w-6xl items-center gap-14 lg:grid-cols-[1.15fr_1fr]">
+          <div>
+            <span className="lp-block-soft inline-block rotate-[-1.5deg] rounded-full bg-[var(--paper)] px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider">
+              Sell anything · one link
+            </span>
+
+            <h1 className="mt-6 text-[46px] font-extrabold leading-[0.95] tracking-[-0.03em] text-white sm:text-[68px]">
+              Get paid
+              <br />
+              properly
+              <br />
+              <span className="font-[family-name:var(--font-instrument-serif)] font-normal italic">
+                for what you make.
+              </span>
+            </h1>
+
+            <p className="mt-6 max-w-md text-[17px] leading-relaxed text-white/90">
+              Products, events, sessions — one link, one checkout, one dashboard. The money
+              lands in your bank, not in a group chat.
+            </p>
+
+            <div className="mt-9 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
+              <Link
+                href={href}
+                className="lp-block inline-flex items-center gap-2 rounded-2xl bg-[var(--paper)] px-7 py-4 text-[15px] font-extrabold text-[var(--ink)] transition-transform hover:-translate-y-1"
+              >
+                {cta} <ArrowRight className="h-4 w-4" />
+              </Link>
+              <div className="flex items-center gap-2 text-[13px] font-semibold text-white/85">
+                <Check className="h-4 w-4" /> No monthly fee, ever
+              </div>
+            </div>
           </div>
 
-          <h1 className="text-4xl font-bold leading-[1.08] tracking-tight sm:text-6xl">
-            Run your whole business
-            <br />
-            from{" "}
-            <span className="bg-gradient-to-r from-blue-600 via-sky-600 to-emerald-600 bg-clip-text text-transparent">
-              one link
-            </span>
-            .
-          </h1>
-
-          <p className="mx-auto mt-6 max-w-xl text-base leading-relaxed text-subtle sm:text-lg">
-            Sell digital products, run paid events, book sessions, know who your buyers are, and get
-            paid straight to your bank — all from a single dashboard.
-          </p>
-
-          <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Link
-              href={primaryHref}
-              className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-text px-7 text-sm font-bold text-background shadow-lg transition-transform hover:scale-[1.03] active:scale-[0.98] sm:w-auto"
-            >
-              {primaryLabel}
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-            <a
-              href="#how-it-works"
-              className="flex h-12 w-full items-center justify-center rounded-xl border border-border bg-surface px-7 text-sm font-semibold text-text transition-colors hover:bg-muted sm:w-auto"
-            >
-              See how it works
-            </a>
-          </div>
-
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-subtle">
-            <span className="flex items-center gap-1.5">
-              <Check className="h-3.5 w-3.5 text-emerald-600" /> Free to start
-            </span>
-            <span className="flex items-center gap-1.5">
-              <Check className="h-3.5 w-3.5 text-emerald-600" /> No monthly fee
-            </span>
-            <span className="flex items-center gap-1.5">
-              <Check className="h-3.5 w-3.5 text-emerald-600" /> Paid straight to your bank
-            </span>
+          {/* Product, not a description of it. */}
+          <div className="relative flex justify-center lg:justify-end">
+            <div className="lp-tilt-2">
+              <LinkMock />
+            </div>
+            <div className="lp-tilt-1 absolute -bottom-10 -left-2 hidden sm:block">
+              <div className="lp-block-soft rounded-2xl bg-[#FFDE59] px-4 py-3">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--ink)]">
+                  Paid today
+                </p>
+                <p className="text-[20px] font-extrabold text-[var(--ink)]">₦62,000</p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ---------------- What you can sell ---------------- */}
-      <section id="sell" className="border-t border-border/60 px-5 py-24">
+      {/* ══════════════ The problem, in their words ══════════════ */}
+      <section className="border-b-2 border-[var(--ink)] px-5 py-20">
+        <div className="mx-auto max-w-4xl text-center">
+          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[var(--ink-soft)]">
+            You already know how this goes
+          </p>
+          <h2 className="mt-5 text-[32px] font-extrabold leading-[1.1] tracking-tight sm:text-[44px]">
+            Selling is easy. <Mark color="var(--marker-pink)">Getting paid</Mark> is the mess.
+          </h2>
+
+          <div className="mt-12 flex flex-wrap items-center justify-center gap-3">
+            {[
+              "“Send me your account”",
+              "17 transfer screenshots",
+              "Ticking names off by hand",
+              "Chasing the four who never paid",
+              "No idea what you actually made",
+            ].map((t, i) => (
+              <span
+                key={t}
+                className={`lp-block-soft rounded-full bg-white px-4 py-2 text-[13px] font-semibold text-[var(--ink-soft)] lp-tilt-${(i % 4) + 1}`}
+              >
+                {t}
+              </span>
+            ))}
+          </div>
+
+          <div className="mt-10 flex justify-center">
+            <Squiggle className="h-4 w-28 text-[var(--coral)]" />
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════════ Who it's for — pastel grid ══════════════ */}
+      <section id="sell" className="border-b-2 border-[var(--ink)] bg-[var(--paper-deep)] px-5 py-20">
         <div className="mx-auto max-w-6xl">
-          <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-              Everything you sell, in one place
+          <div className="max-w-2xl">
+            <h2 className="text-[32px] font-extrabold leading-[1.05] tracking-tight sm:text-[44px]">
+              Built for whatever
+              <br />
+              you&apos;re <Mark>actually selling</Mark>
             </h2>
-            <p className="mt-4 text-base text-subtle">
-              Products, events and services sit side by side — same checkout, same buyer list, same
-              bank account.
+            <p className="mt-5 max-w-md text-[16px] leading-relaxed text-[var(--ink-soft)]">
+              Products, tickets and time all sit on the same rails — same checkout, same buyer
+              list, same bank account.
             </p>
           </div>
 
-          <div className="mt-14 grid gap-5 md:grid-cols-3">
-            {SELLABLE.map((item) => (
+          <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {WHO_ITS_FOR.map((c, i) => (
               <div
-                key={item.title}
-                className="rounded-2xl border border-border bg-surface p-7 transition-all hover:-translate-y-1 hover:border-subtle/30"
+                key={c.title}
+                className={`lp-block rounded-2xl p-6 lp-tilt-${(i % 4) + 1}`}
+                style={{ background: c.tone }}
               >
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-500/10">
-                  <item.icon className="h-5 w-5 text-blue-600" />
-                </div>
-                <h3 className="mt-5 text-lg font-bold">{item.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-subtle">{item.body}</p>
+                <h3 className="text-[19px] font-extrabold tracking-tight text-[var(--ink)]">
+                  {c.title}
+                </h3>
+                <p className="mt-2.5 text-[13.5px] leading-relaxed text-[var(--ink-muted)]">
+                  {c.body}
+                </p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ---------------- Before / after ---------------- */}
-      <section className="border-t border-border/60 px-5 py-24">
+      {/* ══════════════ The dark band — money honesty ══════════════ */}
+      <section id="money" className="relative overflow-hidden border-b-2 border-[var(--ink)] bg-[var(--plum)] px-5 py-24">
+        <Sparkle className="absolute right-[10%] top-[18%] h-5 w-5 text-[#FFDE59]/60" />
+
+        <div className="mx-auto grid max-w-6xl items-center gap-14 lg:grid-cols-[1fr_1fr]">
+          <div>
+            <h2 className="text-[34px] font-extrabold leading-[1.05] tracking-tight text-[var(--paper)] sm:text-[46px]">
+              We never{" "}
+              <span className="font-[family-name:var(--font-instrument-serif)] font-normal italic text-[#FFDE59]">
+                hold
+              </span>{" "}
+              your money.
+            </h2>
+
+            <p className="mt-6 max-w-md text-[16px] leading-relaxed text-[var(--paper-muted)]">
+              When someone pays, the payment splits at that exact moment. Your share goes
+              straight to your own bank account — it never sits in ours, not even overnight.
+            </p>
+
+            <p className="mt-4 max-w-md text-[16px] leading-relaxed text-[var(--paper-muted)]">
+              That&apos;s why there&apos;s no wallet here, no balance, and nothing to withdraw.
+              There&apos;s nothing to withdraw <em className="font-[family-name:var(--font-instrument-serif)] not-italic">because it&apos;s already yours</em>.
+            </p>
+
+            <div className="mt-8 inline-flex items-center gap-2.5 rounded-full border-2 border-[#FFDE59] px-5 py-2.5">
+              <span className="h-2 w-2 rounded-full bg-[#FFDE59]" />
+              <span className="text-[13px] font-bold text-[#FFDE59]">
+                No monthly fee. A small cut per sale.
+              </span>
+            </div>
+          </div>
+
+          <div className="flex justify-center lg:justify-end">
+            <div className="lp-tilt-3">
+              <PayoutMock />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════════ How it works ══════════════ */}
+      <section id="how" className="border-b-2 border-[var(--ink)] px-5 py-20">
+        <div className="mx-auto max-w-6xl">
+          <div className="relative max-w-2xl">
+            <h2 className="text-[32px] font-extrabold leading-[1.05] tracking-tight sm:text-[44px]">
+              Three steps. Then you&apos;re selling.
+            </h2>
+            <Underline className="mt-2 h-3 w-56 text-[var(--coral)]" />
+          </div>
+
+          <div className="mt-14 space-y-16">
+            {[
+              {
+                n: "01",
+                title: "Put up what you're selling",
+                body: "A product, a ticketed event, a session. Name it, price it, or make it free. It saves as a draft, so nothing goes public before you say so.",
+                art: <EventCardMock />,
+              },
+              {
+                n: "02",
+                title: "Share one link",
+                body: "Your storefront, or a direct link to one thing. It goes in a bio, a status, a group chat — anywhere you'd have pasted your account number.",
+                art: <LinkMock />,
+              },
+              {
+                n: "03",
+                title: "Watch it land",
+                body: "Card or transfer, buyers choose. Every sale is recorded the second it happens, every buyer joins your list, and the money settles to your bank.",
+                art: <OrdersMock />,
+              },
+            ].map((s, i) => (
+              <div
+                key={s.n}
+                className={`grid items-center gap-10 lg:grid-cols-2 ${i % 2 === 1 ? "lg:[&>*:first-child]:order-2" : ""}`}
+              >
+                <div>
+                  <div className="relative inline-block">
+                    <span className="text-[13px] font-extrabold tracking-widest text-[var(--coral)]">
+                      STEP {s.n}
+                    </span>
+                    <Circled className="absolute -left-5 -top-3 h-14 w-24 text-[var(--coral-faint)]" />
+                  </div>
+                  <h3 className="mt-4 text-[26px] font-extrabold leading-tight tracking-tight sm:text-[32px]">
+                    {s.title}
+                  </h3>
+                  <p className="mt-3 max-w-md text-[15px] leading-relaxed text-[var(--ink-soft)]">
+                    {s.body}
+                  </p>
+                </div>
+                <div className="flex justify-center">
+                  <div className={`lp-tilt-${(i % 3) + 1}`}>{s.art}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════════ Buyer trust ══════════════ */}
+      <section className="border-b-2 border-[var(--ink)] bg-[var(--paper-deep)] px-5 py-20">
         <div className="mx-auto max-w-5xl">
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-              Stop running your business out of a chat thread
+            <h2 className="text-[30px] font-extrabold leading-[1.1] tracking-tight sm:text-[40px]">
+              Nobody taps a payment link <Mark color="var(--peri)">without thinking twice</Mark>
             </h2>
-            <p className="mt-4 text-base text-subtle">
-              Every time money is involved, a good idea turns into admin work.
-            </p>
-          </div>
-
-          <div className="mt-14 grid gap-5 md:grid-cols-2">
-            <div className="rounded-2xl border border-border bg-surface p-7">
-              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-subtle">Before</p>
-              <ul className="mt-6 space-y-4">
-                {BEFORE.map((item) => (
-                  <li key={item} className="flex items-start gap-3 text-sm text-subtle">
-                    <X className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="rounded-2xl border border-blue-500/40 bg-surface p-7 shadow-xl shadow-blue-500/5">
-              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-blue-600">
-                With Paylance
-              </p>
-              <ul className="mt-6 space-y-4">
-                {AFTER.map((item) => (
-                  <li key={item} className="flex items-start gap-3 text-sm font-medium text-text">
-                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ---------------- How it works ---------------- */}
-      <section id="how-it-works" className="border-t border-border/60 px-5 py-24">
-        <div className="mx-auto max-w-6xl">
-          <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Three steps to your first sale</h2>
-            <p className="mt-4 text-base text-subtle">
-              You could be taking payments before the end of the day.
-            </p>
-          </div>
-
-          <div className="mt-14 grid gap-6 md:grid-cols-3">
-            {STEPS.map((step) => (
-              <div key={step.number} className="rounded-2xl border border-border bg-surface p-7">
-                <span className="text-sm font-bold text-blue-600">{step.number}</span>
-                <h3 className="mt-4 text-lg font-bold">{step.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-subtle">{step.body}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="mx-auto mt-12 flex max-w-2xl items-center gap-3 rounded-2xl border border-border bg-muted/50 px-5 py-4">
-            <Link2 className="h-4 w-4 shrink-0 text-blue-600" />
-            <p className="text-sm text-subtle">
-              Your storefront lives at{" "}
-              <span className="font-semibold text-text">paylance.me/yourname</span> — short enough to
-              read out loud.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* ---------------- Buyer trust ---------------- */}
-      <section className="border-t border-border/60 px-5 py-24">
-        <div className="mx-auto max-w-6xl">
-          <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-              Built so buyers actually go through with it
-            </h2>
-            <p className="mt-4 text-base text-subtle">
-              Nobody taps a payment link without thinking twice. Every page is designed to answer
-              that hesitation before it costs you a sale.
+            <p className="mt-5 text-[16px] leading-relaxed text-[var(--ink-soft)]">
+              So every page is built to answer that hesitation before it costs you the sale.
             </p>
           </div>
 
           <div className="mt-14 grid gap-5 sm:grid-cols-2">
-            {BUYER_TRUST.map((item) => (
-              <div key={item.title} className="rounded-2xl border border-border bg-surface p-6">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-500/10">
-                  <item.icon className="h-5 w-5 text-emerald-600" />
-                </div>
-                <h3 className="mt-5 text-base font-bold">{item.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-subtle">{item.body}</p>
+            {[
+              { t: "No account. No app.", b: "They tap the link and pay. Nothing to sign up for, nothing to download, no password between them and checkout." },
+              { t: "They see who's already in", b: "Real names of people who've already bought or RSVP'd — the clearest possible signal that a link is genuine." },
+              { t: "Your face is on it", b: "Your name, photo and profile sit at the top. People are trusting you, not an unfamiliar logo." },
+              { t: "It looks right when shared", b: "Cover art, title, date and price all show up in the preview, before the page even loads." },
+            ].map((f, i) => (
+              <div key={f.t} className={`lp-block rounded-2xl bg-white p-6 lp-tilt-${(i % 4) + 1}`}>
+                <h3 className="text-[18px] font-extrabold tracking-tight">{f.t}</h3>
+                <p className="mt-2 text-[13.5px] leading-relaxed text-[var(--ink-soft)]">{f.b}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ---------------- The dashboard ---------------- */}
-      <section id="dashboard" className="border-t border-border/60 px-5 py-24">
-        <div className="mx-auto max-w-6xl">
-          <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-              The part that makes it a business
-            </h2>
-            <p className="mt-4 text-base text-subtle">
-              Selling is the easy half. Knowing who bought, what earned, and where the money went is
-              what turns it into something you can run.
-            </p>
-          </div>
-
-          <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {DASHBOARD.map((feature) => (
-              <div key={feature.title} className="rounded-2xl border border-border bg-surface p-6">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-500/10">
-                  <feature.icon className="h-5 w-5 text-blue-600" />
-                </div>
-                <h3 className="mt-5 text-base font-bold">{feature.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-subtle">{feature.body}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ---------------- Pricing ---------------- */}
-      <section id="pricing" className="border-t border-border/60 px-5 py-24">
+      {/* ══════════════ FAQ ══════════════ */}
+      <section id="faq" className="border-b-2 border-[var(--ink)] px-5 py-20">
         <div className="mx-auto max-w-3xl">
-          <div className="rounded-3xl border border-border bg-surface p-10 text-center">
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-              You only pay when you get paid
-            </h2>
-            <p className="mx-auto mt-4 max-w-lg text-base text-subtle">
-              Nothing to sign up. No monthly fee. We take a small percentage of each sale — so if
-              nobody buys, it costs you nothing.
-            </p>
-
-            <div className="mx-auto mt-8 grid max-w-lg gap-3 text-left sm:grid-cols-2">
-              {["No subscription", "No setup fee", "Unlimited products & events", "Free items stay free"].map(
-                (item) => (
-                  <div key={item} className="flex items-center gap-2.5 text-sm">
-                    <Check className="h-4 w-4 shrink-0 text-emerald-600" />
-                    {item}
-                  </div>
-                )
-              )}
-            </div>
-
-            <Link
-              href={primaryHref}
-              className="mx-auto mt-9 flex h-12 w-full max-w-xs items-center justify-center gap-2 rounded-xl bg-text text-sm font-bold text-background transition-transform hover:scale-[1.03] active:scale-[0.98]"
-            >
-              {primaryLabel} <ArrowRight className="h-4 w-4" />
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* ---------------- FAQ ---------------- */}
-      <section id="faq" className="border-t border-border/60 px-5 py-24">
-        <div className="mx-auto max-w-3xl">
-          <h2 className="text-center text-3xl font-bold tracking-tight sm:text-4xl">
-            Questions, answered
+          <h2 className="text-center text-[32px] font-extrabold tracking-tight sm:text-[42px]">
+            Fair questions
           </h2>
 
-          <div className="mt-12 divide-y divide-border rounded-2xl border border-border bg-surface">
-            {FAQS.map((faq) => (
-              <details key={faq.q} className="group px-6 py-5">
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-sm font-semibold">
-                  {faq.q}
-                  <span className="shrink-0 text-subtle transition-transform group-open:rotate-45">
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
-                      <path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          <div className="mt-12 space-y-3">
+            {[
+              { q: "What can I actually sell?", a: "Digital products, event tickets, and sessions or services — all from one account, one link and one checkout." },
+              { q: "Do my buyers need an account?", a: "No. They tap your link, enter their name and email, and pay. That's the whole thing." },
+              { q: "How do I get my money?", a: "Straight to your own bank account. The payment splits at the moment someone pays, so your share settles directly to you. We never hold it." },
+              { q: "Can I run something for free?", a: "Yes. Free events and free products work exactly the same way — you collect sign-ups instead of payments, and still see everyone who came through." },
+              { q: "What does it cost?", a: "Nothing to start, and no monthly fee. We take a small percentage when you actually get paid — so if you don't sell, you don't pay." },
+              { q: "Do I need a website?", a: "No. Your storefront is the website. One shareable link with everything you sell on it." },
+            ].map((f, i) => (
+              <details key={f.q} className={`lp-block-soft group rounded-2xl bg-white px-6 py-5 lp-tilt-${(i % 2) + 3}`}>
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-[15px] font-bold">
+                  {f.q}
+                  <span className="shrink-0 text-[var(--coral)] transition-transform group-open:rotate-45">
+                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden>
+                      <path d="M9 3v12M3 9h12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
                     </svg>
                   </span>
                 </summary>
-                <p className="mt-3 text-sm leading-relaxed text-subtle">{faq.a}</p>
+                <p className="mt-3 text-[14px] leading-relaxed text-[var(--ink-soft)]">{f.a}</p>
               </details>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ---------------- Final CTA ---------------- */}
-      <section className="border-t border-border/60 px-5 py-24">
-        <div className="relative mx-auto max-w-4xl overflow-hidden rounded-3xl border border-border bg-surface px-6 py-16 text-center">
-          <div
-            aria-hidden
-            className="pointer-events-none absolute left-1/2 top-0 h-64 w-[600px] max-w-[120vw] -translate-x-1/2 rounded-full opacity-[0.14] blur-[90px]"
-            style={{ background: "radial-gradient(circle, #3B82F6 0%, transparent 65%)" }}
-          />
-          <div className="relative">
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-              What are you selling?
-            </h2>
-            <p className="mx-auto mt-4 max-w-lg text-base text-subtle">
-              Set it up now, share your link today, and let people pay you properly.
-            </p>
+      {/* ══════════════ Final CTA ══════════════ */}
+      <section className="relative overflow-hidden border-b-2 border-[var(--ink)] bg-gradient-to-br from-[#8B5CF6] via-[#F5568E] to-[#FF6A45] px-5 py-24 text-center">
+        <Sparkle className="absolute left-[14%] top-[22%] h-6 w-6 text-white/60" />
+        <Star className="absolute bottom-[22%] right-[16%] h-5 w-5 text-white/40" />
+
+        <div className="relative mx-auto max-w-xl">
+          <h2 className="text-[36px] font-extrabold leading-[1.02] tracking-tight text-white sm:text-[52px]">
+            So — what are you
+            <br />
+            <span className="font-[family-name:var(--font-instrument-serif)] font-normal italic">
+              selling?
+            </span>
+          </h2>
+
+          <p className="mx-auto mt-5 max-w-sm text-[16px] leading-relaxed text-white/90">
+            Set it up now, share your link today, and let people pay you like a business.
+          </p>
+
+          <div className="relative mt-10 inline-block">
             <Link
-              href={primaryHref}
-              className="mx-auto mt-8 flex h-12 w-full max-w-xs items-center justify-center gap-2 rounded-xl bg-text text-sm font-bold text-background shadow-lg transition-transform hover:scale-[1.03] active:scale-[0.98]"
+              href={href}
+              className="lp-block inline-flex items-center gap-2 rounded-2xl bg-[var(--paper)] px-8 py-4 text-[15px] font-extrabold text-[var(--ink)] transition-transform hover:-translate-y-1"
             >
-              {primaryLabel} <ArrowRight className="h-4 w-4" />
+              {cta} <ArrowRight className="h-4 w-4" />
             </Link>
+            <ArrowCurve className="absolute -right-20 -top-8 hidden h-16 w-20 text-white/60 sm:block" />
           </div>
         </div>
       </section>
 
-      {/* ---------------- Footer ---------------- */}
-      <footer className="border-t border-border/60 px-5 py-12">
+      {/* ══════════════ Footer ══════════════ */}
+      <footer className="px-5 py-12">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-6 sm:flex-row">
           <div className="flex items-center gap-2">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-600">
-              <Layers3 className="h-3.5 w-3.5 text-white" />
+            <span className="flex h-7 w-7 rotate-[-4deg] items-center justify-center rounded-lg border-2 border-[var(--ink)] bg-[var(--coral)] text-[11px] font-black text-white">
+              P
             </span>
-            <span className="text-sm font-bold tracking-tight">Paylance</span>
+            <span className="text-[15px] font-extrabold tracking-tight">Paylance</span>
           </div>
 
-          <div className="flex flex-wrap items-center justify-center gap-x-7 gap-y-2">
-            <a href="#sell" className="text-xs text-subtle transition-colors hover:text-text">
-              What you can sell
-            </a>
-            <a href="#pricing" className="text-xs text-subtle transition-colors hover:text-text">
-              Pricing
-            </a>
-            <a href="#faq" className="text-xs text-subtle transition-colors hover:text-text">
-              FAQ
-            </a>
-            <Link href="/login" className="text-xs text-subtle transition-colors hover:text-text">
+          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
+            {NAV.map(([h, label]) => (
+              <a key={h} href={h} className="text-[12px] font-semibold text-[var(--ink-soft)] hover:text-[var(--ink)]">
+                {label}
+              </a>
+            ))}
+            <Link href="/login" className="text-[12px] font-semibold text-[var(--ink-soft)] hover:text-[var(--ink)]">
               Sign in
             </Link>
           </div>
 
-          <p className="text-xs text-subtle">© {new Date().getFullYear()} Paylance</p>
+          <p className="text-[12px] text-[var(--ink-soft)]">© {new Date().getFullYear()} Paylance</p>
         </div>
       </footer>
     </main>

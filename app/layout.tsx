@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Bricolage_Grotesque } from "next/font/google";
+import { Bricolage_Grotesque, Instrument_Serif } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/components/auth/auth-provider";
 import { Toaster } from "sonner";
@@ -8,6 +8,15 @@ import { Analytics } from "@vercel/analytics/react";
 const bricolageGrotesque = Bricolage_Grotesque({
   subsets: ["latin"],
   variable: "--font-bricolage-grotesque"
+});
+
+// Editorial counterweight to Bricolage's chunkiness — used only for
+// accent words on the marketing site, never in the app.
+const instrumentSerif = Instrument_Serif({
+  subsets: ["latin"],
+  weight: "400",
+  style: ["normal", "italic"],
+  variable: "--font-instrument-serif"
 });
 
 const SITE_DESCRIPTION =
@@ -59,7 +68,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className={bricolageGrotesque.variable}>
+      <body className={`${bricolageGrotesque.variable} ${instrumentSerif.variable}`}>
         <AuthProvider>
           {children}
           <Toaster

@@ -22,19 +22,100 @@ html[data-theme="light"] {
   color-scheme: light;
 }
 
-/* Marketing pages always render light, regardless of the dashboard theme. */
-.theme-light {
-  --background: 255 255 255; /* White */
-  --surface: 249 250 251; /* Gray-50 */
-  --muted: 243 244 246; /* Gray-100 */
-  --border: 229 231 235; /* Gray-200 */
-  --text: 17 24 39; /* Gray-900 */
-  --subtle: 107 114 128; /* Gray-500 */
+/* ============================================================
+   Landing page visual system
+   ------------------------------------------------------------
+   The marketing site is its own world, not the dashboard in light
+   mode: a warm paper ground, ink rather than grey, saturated
+   accents, and hand-drawn marks. Scoped to .lp so none of it can
+   leak into the app.
+   ============================================================ */
+.lp {
+  --paper: #FDF8F0;        /* warm off-white, not a neutral grey */
+  --paper-deep: #F4EADC;   /* the next shade down, for banding */
+  --ink: #1B1512;          /* warm near-black */
+  --ink-soft: #6B5D53;     /* body copy, still warm */
+  --coral: #FF6A45;        /* the one loud accent */
+  --marker: #FFDE59;       /* highlighter yellow */
+  --marker-pink: #FFB3C7;
+  --mint: #9BE3C0;
+  --peri: #B7C4FF;
+  --lilac: #DDBBF5;
+  --plum: #241430;         /* the dark band */
+
+  /* Pre-mixed muted variants. Tailwind can't apply an opacity modifier to
+     an arbitrary var() colour — text-[var(--paper)]/75 silently produces
+     the wrong colour — so these exist as real values. */
+  --paper-muted: #E4D9CB;
+  --ink-muted: rgba(27, 21, 18, 0.72);
+  --rule: rgba(27, 21, 18, 0.14);
+  --coral-faint: rgba(255, 106, 69, 0.35);
+
+  background: var(--paper);
+  color: var(--ink);
   color-scheme: light;
 }
 
-/* Keep the page edges white when a light-scoped page is rendered, so
-   overscroll doesn't reveal the dark body behind it. */
+html:has(.lp),
+html:has(.lp) body {
+  background: #FDF8F0;
+}
+
+/* A highlighter stroke behind a word. Irregular on purpose — a flat
+   rectangle reads as a UI chip, not a marker. */
+.lp-mark {
+  position: relative;
+  display: inline-block;
+  white-space: nowrap;
+}
+.lp-mark > span {
+  position: relative;
+  z-index: 1;
+}
+.lp-mark::before {
+  content: "";
+  position: absolute;
+  left: -0.18em;
+  right: -0.18em;
+  top: 0.18em;
+  bottom: 0.02em;
+  background: var(--mark-color, var(--marker));
+  transform: rotate(-1.2deg);
+  border-radius: 0.55em 0.35em 0.5em 0.4em / 0.9em 1.1em 0.8em 1em;
+  z-index: 0;
+}
+
+/* Cards placed by hand rather than snapped to a grid. */
+.lp-tilt-1 { transform: rotate(-1.4deg); }
+.lp-tilt-2 { transform: rotate(1.1deg); }
+.lp-tilt-3 { transform: rotate(-0.7deg); }
+.lp-tilt-4 { transform: rotate(1.8deg); }
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-tilt-1, .lp-tilt-2, .lp-tilt-3, .lp-tilt-4 { transform: none; }
+}
+
+/* Chunky offset border, like a sticker with a printed shadow. */
+.lp-block {
+  border: 2px solid var(--ink);
+  box-shadow: 5px 5px 0 var(--ink);
+}
+.lp-block-soft {
+  border: 2px solid var(--ink);
+  box-shadow: 3px 3px 0 rgba(27, 21, 18, 0.18);
+}
+
+/* Legacy scope kept for any other marketing surface. */
+.theme-light {
+  --background: 255 255 255;
+  --surface: 249 250 251;
+  --muted: 243 244 246;
+  --border: 229 231 235;
+  --text: 17 24 39;
+  --subtle: 107 114 128;
+  color-scheme: light;
+}
+
 html:has(.theme-light),
 html:has(.theme-light) body {
   background: #ffffff;
