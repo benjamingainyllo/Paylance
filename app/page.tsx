@@ -46,7 +46,7 @@ export default function LandingPage() {
     <main className="lp min-h-screen overflow-x-hidden font-[family-name:var(--font-bricolage-grotesque)]">
       {/* ══════════════ Nav ══════════════ */}
       <header className="sticky top-0 z-50 border-b-2 border-[var(--ink)] bg-[var(--paper)]">
-        <nav className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5">
+        <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6 sm:px-10 lg:px-16">
           <Link href="/" className="flex items-center gap-2">
             <span className="flex h-8 w-8 rotate-[-4deg] items-center justify-center rounded-lg border-2 border-[var(--ink)] bg-[var(--coral)] text-[13px] font-black text-white">
               P
@@ -86,7 +86,7 @@ export default function LandingPage() {
         </nav>
 
         {menuOpen && (
-          <div className="border-t-2 border-[var(--ink)] px-5 py-4 md:hidden">
+          <div className="border-t-2 border-[var(--ink)] px-6 sm:px-10 lg:px-16 py-4 md:hidden">
             <div className="flex flex-col gap-4">
               {NAV.map(([h, label]) => (
                 <a key={h} href={h} onClick={() => setMenuOpen(false)} className="text-sm font-semibold text-[var(--ink-soft)]">
@@ -102,12 +102,12 @@ export default function LandingPage() {
       </header>
 
       {/* ══════════════ Hero — the saturated moment ══════════════ */}
-      <section className="relative overflow-hidden border-b-2 border-[var(--ink)] bg-gradient-to-br from-[#FF6A45] via-[#F5568E] to-[#8B5CF6] px-5 py-20 sm:py-28">
-        <Sparkle className="absolute left-[8%] top-[14%] h-7 w-7 text-white/70" />
-        <Sparkle className="absolute right-[12%] top-[22%] h-4 w-4 text-white/50" />
-        <Star className="absolute bottom-[18%] left-[16%] h-6 w-6 text-white/40" />
+      <section className="relative overflow-hidden border-b-2 border-[var(--ink)] bg-gradient-to-br from-[#FF6A45] via-[#F5568E] to-[#8B5CF6] px-6 sm:px-10 lg:px-16 py-20 sm:py-28">
+        <Sparkle className="absolute left-[8%] top-[14%] hidden h-7 w-7 text-white/70 sm:block" />
+        <Sparkle className="absolute right-[12%] top-[22%] hidden h-4 w-4 text-white/50 sm:block" />
+        <Star className="absolute bottom-[18%] left-[16%] hidden h-6 w-6 text-white/40 sm:block" />
 
-        <div className="relative mx-auto grid max-w-6xl items-center gap-14 lg:grid-cols-[1.15fr_1fr]">
+        <div className="relative mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:gap-10">
           <div>
             <span className="lp-block-soft inline-block rotate-[-1.5deg] rounded-full bg-[var(--paper)] px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider">
               Sell anything · one link
@@ -159,7 +159,7 @@ export default function LandingPage() {
       </section>
 
       {/* ══════════════ The problem, in their words ══════════════ */}
-      <section className="border-b-2 border-[var(--ink)] px-5 py-20">
+      <section className="border-b-2 border-[var(--ink)] px-6 sm:px-10 lg:px-16 py-20">
         <div className="mx-auto max-w-4xl text-center">
           <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[var(--ink-soft)]">
             You already know how this goes
@@ -192,8 +192,8 @@ export default function LandingPage() {
       </section>
 
       {/* ══════════════ Who it's for — pastel grid ══════════════ */}
-      <section id="sell" className="border-b-2 border-[var(--ink)] bg-[var(--paper-deep)] px-5 py-20">
-        <div className="mx-auto max-w-6xl">
+      <section id="sell" className="border-b-2 border-[var(--ink)] bg-[var(--paper-deep)] px-6 sm:px-10 lg:px-16 py-20">
+        <div className="mx-auto max-w-7xl">
           <div className="max-w-2xl">
             <h2 className="text-[32px] font-extrabold leading-[1.05] tracking-tight sm:text-[44px]">
               Built for whatever
@@ -226,10 +226,10 @@ export default function LandingPage() {
       </section>
 
       {/* ══════════════ The dark band — money honesty ══════════════ */}
-      <section id="money" className="relative overflow-hidden border-b-2 border-[var(--ink)] bg-[var(--plum)] px-5 py-24">
-        <Sparkle className="absolute right-[10%] top-[18%] h-5 w-5 text-[#FFDE59]/60" />
+      <section id="money" className="relative overflow-hidden border-b-2 border-[var(--ink)] bg-[var(--plum)] px-6 sm:px-10 lg:px-16 py-24">
+        <Sparkle className="absolute right-[10%] top-[18%] hidden h-5 w-5 text-[#FFDE59]/60 sm:block" />
 
-        <div className="mx-auto grid max-w-6xl items-center gap-14 lg:grid-cols-[1fr_1fr]">
+        <div className="mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-[1fr_1fr] lg:gap-16">
           <div>
             <h2 className="text-[34px] font-extrabold leading-[1.05] tracking-tight text-[var(--paper)] sm:text-[46px]">
               We never{" "}
@@ -266,8 +266,8 @@ export default function LandingPage() {
       </section>
 
       {/* ══════════════ How it works ══════════════ */}
-      <section id="how" className="border-b-2 border-[var(--ink)] px-5 py-20">
-        <div className="mx-auto max-w-6xl">
+      <section id="how" className="border-b-2 border-[var(--ink)] px-6 sm:px-10 lg:px-16 py-20">
+        <div className="mx-auto max-w-7xl">
           <div className="relative max-w-2xl">
             <h2 className="text-[32px] font-extrabold leading-[1.05] tracking-tight sm:text-[44px]">
               Three steps. Then you&apos;re selling.
@@ -298,7 +298,7 @@ export default function LandingPage() {
             ].map((s, i) => (
               <div
                 key={s.n}
-                className={`grid items-center gap-10 lg:grid-cols-2 ${i % 2 === 1 ? "lg:[&>*:first-child]:order-2" : ""}`}
+                className={`grid items-center gap-10 lg:grid-cols-2 lg:gap-16 ${i % 2 === 1 ? "lg:[&>*:first-child]:order-2" : ""}`}
               >
                 <div>
                   <div className="relative inline-block">
@@ -324,8 +324,8 @@ export default function LandingPage() {
       </section>
 
       {/* ══════════════ Buyer trust ══════════════ */}
-      <section className="border-b-2 border-[var(--ink)] bg-[var(--paper-deep)] px-5 py-20">
-        <div className="mx-auto max-w-5xl">
+      <section className="border-b-2 border-[var(--ink)] bg-[var(--paper-deep)] px-6 sm:px-10 lg:px-16 py-20">
+        <div className="mx-auto max-w-6xl">
           <div className="mx-auto max-w-2xl text-center">
             <h2 className="text-[30px] font-extrabold leading-[1.1] tracking-tight sm:text-[40px]">
               Nobody taps a payment link <Mark color="var(--peri)">without thinking twice</Mark>
@@ -352,7 +352,7 @@ export default function LandingPage() {
       </section>
 
       {/* ══════════════ FAQ ══════════════ */}
-      <section id="faq" className="border-b-2 border-[var(--ink)] px-5 py-20">
+      <section id="faq" className="border-b-2 border-[var(--ink)] px-6 sm:px-10 lg:px-16 py-20">
         <div className="mx-auto max-w-3xl">
           <h2 className="text-center text-[32px] font-extrabold tracking-tight sm:text-[42px]">
             Fair questions
@@ -384,9 +384,9 @@ export default function LandingPage() {
       </section>
 
       {/* ══════════════ Final CTA ══════════════ */}
-      <section className="relative overflow-hidden border-b-2 border-[var(--ink)] bg-gradient-to-br from-[#8B5CF6] via-[#F5568E] to-[#FF6A45] px-5 py-24 text-center">
-        <Sparkle className="absolute left-[14%] top-[22%] h-6 w-6 text-white/60" />
-        <Star className="absolute bottom-[22%] right-[16%] h-5 w-5 text-white/40" />
+      <section className="relative overflow-hidden border-b-2 border-[var(--ink)] bg-gradient-to-br from-[#8B5CF6] via-[#F5568E] to-[#FF6A45] px-6 sm:px-10 lg:px-16 py-24 text-center">
+        <Sparkle className="absolute left-[14%] top-[22%] hidden h-6 w-6 text-white/60 sm:block" />
+        <Star className="absolute bottom-[22%] right-[16%] hidden h-5 w-5 text-white/40 sm:block" />
 
         <div className="relative mx-auto max-w-xl">
           <h2 className="text-[36px] font-extrabold leading-[1.02] tracking-tight text-white sm:text-[52px]">
@@ -414,8 +414,8 @@ export default function LandingPage() {
       </section>
 
       {/* ══════════════ Footer ══════════════ */}
-      <footer className="px-5 py-12">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-6 sm:flex-row">
+      <footer className="px-6 sm:px-10 lg:px-16 py-12">
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-6 sm:flex-row">
           <div className="flex items-center gap-2">
             <span className="flex h-7 w-7 rotate-[-4deg] items-center justify-center rounded-lg border-2 border-[var(--ink)] bg-[var(--coral)] text-[11px] font-black text-white">
               P
